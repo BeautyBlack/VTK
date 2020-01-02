@@ -122,12 +122,19 @@ endif()
 if(MSVC)
   set(CMAKE_CXX_MP_FLAG OFF CACHE BOOL "Build with /MP flag enabled")
   set(PROCESSOR_COUNT "$ENV{NUMBER_OF_PROCESSORS}")
-  set(CMAKE_CXX_MP_NUM_PROCESSORS CACHE ${PROCESSOR_COUNT} "The maximum number of processes for the /MP flag")
+  set(CMAKE_CXX_MP_NUM_PROCESSORS ${PROCESSOR_COUNT} CACHE STRING "The maximum number of processes for the /MP flag")
   if (CMAKE_CXX_MP_FLAG)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP${CMAKE_CXX_MP_NUM_PROCESSORS}")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP${CMAKE_CXX_MP_NUM_PROCESSORS}")
   endif ()
 endif()
+
+# Enable /bigobj for MSVC to allow larger symbol tables
+if(MSVC)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /bigobj")
+endif()
+
 #-----------------------------------------------------------------------------
 # Add compiler flags VTK needs to work on this platform.  This must be
 # done after the call to CMAKE_EXPORT_BUILD_SETTINGS, but before any

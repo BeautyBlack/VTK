@@ -17,9 +17,10 @@
 #include "vtkAppendFilter.h"
 #include "vtkAppendPolyData.h"
 #include "vtkBoundingBox.h"
-#include "vtkCellData.h"
 #include "vtkCell.h"
+#include "vtkCellData.h"
 #include "vtkCleanPolyData.h"
+#include "vtkDataObjectTypes.h"
 #include "vtkDataSetCollection.h"
 #include "vtkExecutive.h"
 #include "vtkIncrementalOctreePointLocator.h"
@@ -31,6 +32,7 @@
 #include "vtkPolyData.h"
 #include "vtkSmartPointer.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
+#include "vtkType.h"
 #include "vtkUnstructuredGrid.h"
 
 vtkStandardNewMacro(vtkAppendDataSets);
@@ -40,36 +42,26 @@ vtkAppendDataSets::vtkAppendDataSets()
   : MergePoints(false)
   , Tolerance(0.0)
   , ToleranceIsAbsolute(true)
+  , OutputDataSetType(VTK_UNSTRUCTURED_GRID)
   , OutputPointsPrecision(DEFAULT_PRECISION)
 {
 }
 
 //----------------------------------------------------------------------------
-vtkAppendDataSets::~vtkAppendDataSets()
-{
-}
+vtkAppendDataSets::~vtkAppendDataSets() {}
 
-namespace
+//----------------------------------------------------------------------------
+vtkTypeBool vtkAppendDataSets::ProcessRequest(
+  vtkInformation* request, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
-
-bool AreAllInputsPolyData(vtkInformationVector* inputVector)
-{
-  if (!inputVector)
+  // Handle update requests
+  if (request->Has(vtkStreamingDemandDrivenPipeline::REQUEST_UPDATE_EXTENT()))
   {
-    return true;
+    return this->RequestUpdateExtent(request, inputVector, outputVector);
   }
 
-  for (int idx = 0; idx < inputVector->GetNumberOfInformationObjects(); ++idx)
-  {
-    if (!vtkPolyData::GetData(inputVector, idx))
-    {
-      return false;
-    }
-  }
-  return true;
+  return this->Superclass::ProcessRequest(request, inputVector, outputVector);
 }
-
-} // end anonymous namespace
 
 //----------------------------------------------------------------------------
 int vtkAppendDataSets::RequestDataObject(vtkInformation* vtkNotUsed(request),
@@ -81,7 +73,13 @@ int vtkAppendDataSets::RequestDataObject(vtkInformation* vtkNotUsed(request),
     return 0;
   }
 
-  bool allPolyData = AreAllInputsPolyData(inputVector[0]);
+  if (this->OutputDataSetType != VTK_POLY_DATA && this->OutputDataSetType != VTK_UNSTRUCTURED_GRID)
+  {
+    vtkErrorMacro(
+      "Output type '" << vtkDataObjectTypes::GetClassNameFromTypeId(this->OutputDataSetType)
+                      << "' is not supported.");
+    return 0;
+  }
 
   vtkDataObject* input = inInfo->Get(vtkDataObject::DATA_OBJECT());
   if (input)
@@ -90,23 +88,12 @@ int vtkAppendDataSets::RequestDataObject(vtkInformation* vtkNotUsed(request),
     vtkDataObject* output = info->Get(vtkDataObject::DATA_OBJECT());
 
     if (!output ||
-      (output->IsA("vtkPolyData") && !allPolyData) ||
-      (output->IsA("vtkUnstructuredGrid") && allPolyData))
+      (vtkDataObjectTypes::GetTypeIdFromClassName(output->GetClassName()) !=
+        this->OutputDataSetType))
     {
-      vtkDataObject* newOutput = nullptr;
-      // If all the inputs are vtkPolyData, produce a vtkPolyData to avoid
-      // "demotion" to a vtkUnstructuredGrid.
-      if (allPolyData)
-      {
-        newOutput = vtkPolyData::New();
-      }
-      else
-      {
-        newOutput = vtkUnstructuredGrid::New();
-      }
-
+      vtkSmartPointer<vtkDataObject> newOutput;
+      newOutput.TakeReference(vtkDataObjectTypes::NewDataObject(this->OutputDataSetType));
       info->Set(vtkDataObject::DATA_OBJECT(), newOutput);
-      newOutput->Delete();
       this->GetOutputPortInformation(0)->Set(
         vtkDataObject::DATA_EXTENT_TYPE(), newOutput->GetExtentType());
     }
@@ -118,21 +105,17 @@ int vtkAppendDataSets::RequestDataObject(vtkInformation* vtkNotUsed(request),
 
 //----------------------------------------------------------------------------
 // Append data sets into single unstructured grid
-int vtkAppendDataSets::RequestData(
-  vtkInformation *vtkNotUsed(request),
-  vtkInformationVector **inputVector,
-  vtkInformationVector *outputVector)
+int vtkAppendDataSets::RequestData(vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   // get the output info object
-  vtkInformation *outInfo = outputVector->GetInformationObject(0);
+  vtkInformation* outInfo = outputVector->GetInformationObject(0);
 
   // get the output
-  vtkPointSet* output = vtkPointSet::SafeDownCast(
-    outInfo->Get(vtkDataObject::DATA_OBJECT()));
-  vtkUnstructuredGrid* outputUG = vtkUnstructuredGrid::SafeDownCast(
-    outInfo->Get(vtkDataObject::DATA_OBJECT()));
-  vtkPolyData* outputPD = vtkPolyData::SafeDownCast(
-    outInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkPointSet* output = vtkPointSet::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkUnstructuredGrid* outputUG =
+    vtkUnstructuredGrid::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkPolyData* outputPD = vtkPolyData::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
   vtkDebugMacro("Appending data together");
 
@@ -149,9 +132,11 @@ int vtkAppendDataSets::RequestData(
       auto input = vtkDataSet::GetData(inputVector[0], cc);
       appender->AddInputData(input);
     }
-    appender->Update();
-
-    outputUG->ShallowCopy(appender->GetOutput());
+    if (appender->GetNumberOfInputConnections(0) > 0)
+    {
+      appender->Update();
+      outputUG->ShallowCopy(appender->GetOutput());
+    }
   }
   else if (outputPD)
   {
@@ -160,33 +145,42 @@ int vtkAppendDataSets::RequestData(
     for (int cc = 0; cc < inputVector[0]->GetNumberOfInformationObjects(); cc++)
     {
       auto input = vtkPolyData::GetData(inputVector[0], cc);
-      appender->AddInputData(input);
+      if (input)
+      {
+        appender->AddInputData(input);
+      }
     }
     if (this->MergePoints)
     {
-      vtkNew<vtkCleanPolyData> cleaner;
-      cleaner->SetInputConnection(appender->GetOutputPort());
-      cleaner->PointMergingOn();
-      cleaner->ConvertLinesToPointsOff();
-      cleaner->ConvertPolysToLinesOff();
-      cleaner->ConvertStripsToPolysOff();
-      if (this->GetToleranceIsAbsolute())
+      if (appender->GetNumberOfInputConnections(0) > 0)
       {
-        cleaner->SetAbsoluteTolerance(this->GetTolerance());
-        cleaner->ToleranceIsAbsoluteOn();
+        vtkNew<vtkCleanPolyData> cleaner;
+        cleaner->SetInputConnection(appender->GetOutputPort());
+        cleaner->PointMergingOn();
+        cleaner->ConvertLinesToPointsOff();
+        cleaner->ConvertPolysToLinesOff();
+        cleaner->ConvertStripsToPolysOff();
+        if (this->GetToleranceIsAbsolute())
+        {
+          cleaner->SetAbsoluteTolerance(this->GetTolerance());
+          cleaner->ToleranceIsAbsoluteOn();
+        }
+        else
+        {
+          cleaner->SetTolerance(this->GetTolerance());
+          cleaner->ToleranceIsAbsoluteOff();
+        }
+        cleaner->Update();
+        output->ShallowCopy(cleaner->GetOutput());
       }
-      else
-      {
-        cleaner->SetTolerance(this->GetTolerance());
-        cleaner->ToleranceIsAbsoluteOff();
-      }
-      cleaner->Update();
-      output->ShallowCopy(cleaner->GetOutput());
     }
     else
     {
-      appender->Update();
-      output->ShallowCopy(appender->GetOutput());
+      if (appender->GetNumberOfInputConnections(0) > 0)
+      {
+        appender->Update();
+        output->ShallowCopy(appender->GetOutput());
+      }
     }
   }
   else
@@ -199,7 +193,29 @@ int vtkAppendDataSets::RequestData(
 }
 
 //----------------------------------------------------------------------------
-int vtkAppendDataSets::FillInputPortInformation(int, vtkInformation *info)
+int vtkAppendDataSets::RequestUpdateExtent(vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** inputVector, vtkInformationVector* vtkNotUsed(outputVector))
+{
+  int numInputConnections = this->GetNumberOfInputConnections(0);
+
+  // Let downstream request a subset of connection 0, for connections >= 1
+  // send their WHOLE_EXTENT as UPDATE_EXTENT.
+  for (int idx = 1; idx < numInputConnections; ++idx)
+  {
+    vtkInformation* inputInfo = inputVector[0]->GetInformationObject(idx);
+    if (inputInfo->Has(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT()))
+    {
+      int ext[6];
+      inputInfo->Get(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(), ext);
+      inputInfo->Set(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), ext, 6);
+    }
+  }
+
+  return 1;
+}
+
+//----------------------------------------------------------------------------
+int vtkAppendDataSets::FillInputPortInformation(int, vtkInformation* info)
 {
   info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkDataSet");
   info->Set(vtkAlgorithm::INPUT_IS_REPEATABLE(), 1);
@@ -209,9 +225,11 @@ int vtkAppendDataSets::FillInputPortInformation(int, vtkInformation *info)
 //----------------------------------------------------------------------------
 void vtkAppendDataSets::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
-  os << indent << "MergePoints:" << (this->MergePoints?"On":"Off") << "\n";
+  this->Superclass::PrintSelf(os, indent);
+  os << indent << "MergePoints:" << (this->MergePoints ? "On" : "Off") << "\n";
   os << indent << "Tolerance: " << this->Tolerance << "\n";
-  os << indent << "OutputPointsPrecision: "
-     << this->OutputPointsPrecision << "\n";
+  os << indent
+     << "OutputDataSetType: " << vtkDataObjectTypes::GetClassNameFromTypeId(this->OutputDataSetType)
+     << "\n";
+  os << indent << "OutputPointsPrecision: " << this->OutputPointsPrecision << "\n";
 }

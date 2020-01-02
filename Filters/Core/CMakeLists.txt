@@ -1,4 +1,5 @@
 set(classes
+  vtk3DLinearGridPlaneCutter
   vtkAppendArcLength
   vtkAppendCompositeDataLeaves
   vtkAppendDataSets
@@ -20,6 +21,7 @@ set(classes
   vtkContourFilter
   vtkContourGrid
   vtkContourHelper
+  vtk3DLinearGridCrinkleExtractor
   vtkCutter
   vtkDataObjectGenerator
   vtkDataObjectToDataSetFilter
@@ -48,6 +50,7 @@ set(classes
   vtkImageDataToExplicitStructuredGrid
   vtkImageAppend
   vtkImplicitPolyDataDistance
+  vtkImplicitProjectOnPlaneDistance
   vtkMarchingCubes
   vtkMarchingSquares
   vtkMaskFields
@@ -63,6 +66,7 @@ set(classes
   vtkPointDataToCellData
   vtkPolyDataConnectivityFilter
   vtkPolyDataNormals
+  vtkPolyDataTangents
   vtkProbeFilter
   vtkQuadricClustering
   vtkQuadricDecimation
@@ -97,6 +101,9 @@ set(classes
   vtkVectorNorm
   vtkVoronoi2D
   vtkWindowedSincPolyDataFilter)
+
+set(headers
+    vtk3DLinearGridInternal.h)
 
 vtk_module_add_module(VTK::FiltersCore
   CLASSES ${classes})

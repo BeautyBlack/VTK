@@ -1,15 +1,49 @@
 list(APPEND CTEST_CUSTOM_MEMCHECK_IGNORE
   # Issues in third party glut library
-  TestGLUTRenderWindow
+  VTK::RenderingExternalCxx-TestGLUTRenderWindow
+  VTK::IOVPICCxx-TestVPICReader
+  VTK::RenderingFreeTypeFontConfigCxx-TestSystemFontRendering
+  VTK::GeovisGDALCxx-TestRasterReprojectionFilter
+
+  # The PLY code does out of range ops but that is just how
+  # it is architected currently. It stores every value into
+  # uint, int, and double but typically only uses the
+  # value that makes sense for the type read in. Code needs
+  # to be reworked eventually but the out of range values
+  # are likely not being used.
+  VTK::IOPLYCxx-TestPLYWriter
+  VTK::IOPLYCxx-TestPLYWriterString
+  VTK::IOPLYCxx-TestPLYReaderTextureUVPoints
+  VTK::IOPLYCxx-TestPLYReaderTextureUVFaces
+
+  # TestLinePlotDouble intentionally uses very large doubles
+  # even though the implementation of the class is largely
+  # float. Fixing this requires reworking a few classes to
+  # use doubles everywhere (which they generally should)
+  # when that is done this can be removed.
+  # The key classes impacted are vtkPlotPoints and the
+  # Draw calls in Context2D
+  VTK::ChartsCoreCxx-TestLinePlotDouble
 )
 
 list(APPEND CTEST_CUSTOM_WARNING_MATCH
   "{standard input}:[0-9][0-9]*: Warning: ")
 
 list(APPEND CTEST_CUSTOM_WARNING_EXCEPTION
+  # classes that have been marked deprecated
+  # and will be removed in the future
+  # To be remove din VTK 9.0
+  "vtkTemporalStreamTracer"
+
   # Java compilation warnings that don't matter.
   "^1 warning$"
   "bootstrap class path not set in conjunction with -source"
+
+  # OSX has deprecated openGL but we still use it
+  # and probably will not update the code but replace it
+  # with vulklan/moltenVK in the future
+  "Cocoa.*deprecated"
+  "NSOpenGL.*deprecated"
 
   # C4275 carries with it a note that we don't care about. std::exception is
   # the main culprit here.
@@ -29,6 +63,7 @@ list(APPEND CTEST_CUSTOM_WARNING_EXCEPTION
 
   # This is secondary output from MSVC, not indicate the warning per se.
   "note: see declaration of"
+  "note: see previous definition of"
 
   # function cast in vtkLogger/loguru
   "vtkLogger.cxx.*: warning: cast between incompatible function types"
@@ -37,7 +72,8 @@ list(APPEND CTEST_CUSTOM_WARNING_EXCEPTION
   "[Qq]t([Cc]ore|[Gg]ui|[Tt]est|[Ww]idgets).*(warning|note)"
   # Qt has some functions marked as `__forceinline` which MSVC refuses to inline.
   "[Qq]t.*warning C4714"
-  "[Qq]t.*note: see declaration of")
+  "[Qq]t.*note: see declaration of"
+  )
 
 set(cdash_show_third_party_warnings "@VTK_ENABLE_CDASH_THIRD_PARTY_WARNINGS@")
 if (NOT cdash_show_third_party_warnings)
@@ -47,6 +83,10 @@ if (NOT cdash_show_third_party_warnings)
 
     # Suppress ThirdParty source code from displaying warnings.
     "[Tt]hird[Pp]arty"
+
+    # Suppress Remote module source code from displaying warnings.
+    # Suppress modules individually as just "Remote" is a common pattern
+    "[Rr]emote.[Mm]oment[Ii]nvariants"
 
     # sometimes we use system third party headers with issues
     # in this case liblas
@@ -67,15 +107,22 @@ if (NOT cdash_show_third_party_warnings)
     "note: 'sbrk' has been explicitly marked deprecated here"
 
     # libproj source code includes the line
-    # return 0;       /* supresses a warning */
+    # return 0;       /* suppresses a warning */
     # which is listed as context for another warning
     # and causes a match due to the work warning in it
-    "return 0;       /\\* supresses a warning \\*/"
+    "return 0;       /\\* suppresses a warning \\*/"
 
     # boost graph lib causes a warning on gcc with code that
     # boost uses internally. An example for you template fans is
     # /source/Infovis/BoostGraphAlgorithms/Testing/Cxx/TestBoostAdapter.cxx:221:47: warning: '*((void*)(& ei)+32).__gnu_cxx::__normal_iterator<boost::detail::stored_edge_property<long unsigned int, boost::property<boost::edge_index_t, unsigned int> >*, std::vector<boost::detail::stored_edge_property<long unsigned int, boost::property<boost::edge_index_t, unsigned int> >, std::allocator<boost::detail::stored_edge_property<long unsigned int, boost::property<boost::edge_index_t, unsigned int> > > > >::_M_current' may be used uninitialized in this function [-Wmaybe-uninitialized]
     "[Bb]oost[Gg]raph.*edge_property.*may be used uninitialized"
+
+    # Warnings due to DIY
+    "xmemory.*: warning C4996:.*Default Bounds constructor"
+
+    # eigen uses this internal header from CUDA that should not be used.
+    # [-Wcpp]
+    "host_defines.h is an internal header file and must not be used directly.  This file will be removed in a future CUDA release.  Please use cuda_runtime_api.h or cuda_runtime.h instead"
   )
 endif ()
 

@@ -17,7 +17,7 @@
 
 #include "vtk_glew.h"
 
-vtkStandardNewMacro(vtkShader)
+vtkStandardNewMacro(vtkShader);
 
 vtkShader::vtkShader()
 {
@@ -34,7 +34,7 @@ void vtkShader::SetType(Type type)
   this->Dirty = true;
 }
 
-void vtkShader::SetSource(const std::string &source)
+void vtkShader::SetSource(const std::string& source)
 {
   this->Source = source;
   this->Dirty = true;
@@ -73,7 +73,15 @@ bool vtkShader::Compile()
   }
 
   GLuint handle = glCreateShader(type);
-  const GLchar *source = static_cast<const GLchar *>(this->Source.c_str());
+
+  // Handle shader creation failures.
+  if (handle == 0)
+  {
+    this->Error = "Could not create shader object.";
+    return false;
+  }
+
+  const GLchar* source = static_cast<const GLchar*>(this->Source.c_str());
   glShaderSource(handle, 1, &source, nullptr);
   glCompileShader(handle);
   GLint isCompiled;
@@ -86,7 +94,7 @@ bool vtkShader::Compile()
     glGetShaderiv(handle, GL_INFO_LOG_LENGTH, &length);
     if (length > 1)
     {
-      char *logMessage = new char[length];
+      char* logMessage = new char[length];
       glGetShaderInfoLog(handle, length, nullptr, logMessage);
       this->Error = logMessage;
       delete[] logMessage;
@@ -117,5 +125,5 @@ void vtkShader::Cleanup()
 // ----------------------------------------------------------------------------
 void vtkShader::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 }

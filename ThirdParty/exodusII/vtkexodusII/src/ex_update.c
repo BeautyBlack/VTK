@@ -47,10 +47,9 @@
 
 #include "exodusII.h"     // for ex_err, etc
 #include "exodusII_int.h" // for EX_FATAL, EX_NOERR
-#include "vtk_netcdf.h"       // for nc_sync, NC_NOERR
-#include <stdio.h>
 
 /*!
+ * \ingroup Utilities
  * updates an opened EXODUS file (or EXODUS history file)
  * \param  exoid                   exodus file id
  */
@@ -62,11 +61,11 @@ int ex_update(int exoid)
 
   EX_FUNC_ENTER();
 
-  ex_check_valid_file_id(exoid, __func__);
+  ex__check_valid_file_id(exoid, __func__);
 
   if ((status = nc_sync(exoid)) != NC_NOERR) {
     snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to update file id %d", exoid);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
     EX_FUNC_LEAVE(EX_FATAL);
   }
   EX_FUNC_LEAVE(EX_NOERR);

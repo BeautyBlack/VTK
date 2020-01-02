@@ -16,10 +16,13 @@ vtk_add_test_python(
   QuadricDecimation.py
   QuadricDecimation2.py
   StreamPolyData.py
+  Test3DLinearGridCrinkleExtractor.py
+  Test3DLinearGridPlaneCutter.py
   TestCalculatorDataTypes.py,NO_VALID
   TestContour3DLinearGrid.py
   TestContour3DLinearGrid2.py
   TestContour3DLinearGridCompositeInput.py
+  TestContour3DLinearGridInterpolateAttributes.py,NO_VALID
   TestContour3DLinearGridScalarTree.py
   TestDecimatePolylineMaximumError.py
   TestElevationFilter.py
@@ -79,6 +82,7 @@ vtk_add_test_python(
   polyConn.py
   probe.py
   probeComb.py
+  probeComb2.py
   reverseNormals.py
   smoothMeshOnMesh.py
   streamComb.py

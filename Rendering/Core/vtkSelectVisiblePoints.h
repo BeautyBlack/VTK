@@ -40,13 +40,13 @@
  * executes. You may have to perform two rendering passes, or if you
  * are using this filter in conjunction with vtkLabeledDataMapper,
  * things work out because 2D rendering occurs after the 3D rendering.
-*/
+ */
 
 #ifndef vtkSelectVisiblePoints_h
 #define vtkSelectVisiblePoints_h
 
-#include "vtkRenderingCoreModule.h" // For export macro
 #include "vtkPolyDataAlgorithm.h"
+#include "vtkRenderingCoreModule.h" // For export macro
 
 class vtkRenderer;
 class vtkMatrix4x4;
@@ -61,7 +61,7 @@ public:
    * Instantiate object with no renderer; window selection turned off;
    * tolerance set to 0.01; and select invisible off.
    */
-  static vtkSelectVisiblePoints *New();
+  static vtkSelectVisiblePoints* New();
 
   //@{
   /**
@@ -70,14 +70,13 @@ public:
    */
   void SetRenderer(vtkRenderer* ren)
   {
-      if (this->Renderer != ren)
-      {
-        this->Renderer = ren;
-        this->Modified();
-      }
+    if (this->Renderer != ren)
+    {
+      this->Renderer = ren;
+      this->Modified();
+    }
   }
-  vtkRenderer* GetRenderer()
-    { return this->Renderer; }
+  vtkRenderer* GetRenderer() { return this->Renderer; }
   //@}
 
   //@{
@@ -111,25 +110,38 @@ public:
 
   //@{
   /**
-   * Set/Get a tolerance to use to determine whether a point is visible. A
+   * Set/Get a tolerance in normalized display coordinate system
+   * to use to determine whether a point is visible. A
    * tolerance is usually required because the conversion from world space
    * to display space during rendering introduces numerical round-off.
    */
-  vtkSetClampMacro(Tolerance, double,0.0, VTK_DOUBLE_MAX);
+  vtkSetClampMacro(Tolerance, double, 0.0, VTK_DOUBLE_MAX);
   vtkGetMacro(Tolerance, double);
+  //@}
+
+  //@{
+  /**
+   * Set/Get a tolerance in world coordinate system
+   * to use to determine whether a point is visible.
+   * This allows determining visibility of small spheroid objects
+   * (such as glyphs) with known size in world coordinates.
+   * By default it is set to 0.
+   */
+  vtkSetClampMacro(ToleranceWorld, double, 0.0, VTK_DOUBLE_MAX);
+  vtkGetMacro(ToleranceWorld, double);
   //@}
 
   /**
    * Requires the renderer to be set. Populates the composite perspective transform
    * and returns a pointer to the Z-buffer (that must be deleted) if getZbuff is set.
    */
-  float * Initialize(bool getZbuff);
+  float* Initialize(bool getZbuff);
 
   /**
    * Tests if a point x is being occluded or not against the Z-Buffer array passed in by
    * zPtr. Call Initialize before calling this method.
    */
-  bool IsPointOccluded(const double x[3], const float *zPtr);
+  bool IsPointOccluded(const double x[3], const float* zPtr);
 
   /**
    * Return MTime also considering the renderer.
@@ -140,17 +152,19 @@ protected:
   vtkSelectVisiblePoints();
   ~vtkSelectVisiblePoints() override;
 
-  int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *) override;
-  int FillInputPortInformation(int port, vtkInformation *info) override;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  int FillInputPortInformation(int port, vtkInformation* info) override;
 
-  vtkRenderer *Renderer;
-  vtkMatrix4x4 *CompositePerspectiveTransform;
+  vtkRenderer* Renderer;
+  vtkMatrix4x4* CompositePerspectiveTransform;
 
   vtkTypeBool SelectionWindow;
   int Selection[4];
   int InternalSelection[4];
   vtkTypeBool SelectInvisible;
+  double DirectionOfProjection[3];
   double Tolerance;
+  double ToleranceWorld;
 
 private:
   vtkSelectVisiblePoints(const vtkSelectVisiblePoints&) = delete;

@@ -15,6 +15,7 @@ set(classes
   vtkDepthPeelingPass
   vtkDualDepthPeelingPass
   vtkEDLShading
+  vtkEquirectangularToCubeMapTexture
   vtkFramebufferPass
   vtkGaussianBlurPass
   vtkGenericOpenGLRenderWindow
@@ -29,6 +30,8 @@ set(classes
   vtkOpenGLCamera
   vtkOpenGLCellToVTKCellMap
   vtkOpenGLFXAAFilter
+  vtkOpenGLFXAAPass
+  vtkOpenGLFluidMapper
   vtkOpenGLFramebufferObject
   vtkOpenGLGL2PSHelper
   vtkOpenGLGlyph3DHelper
@@ -73,10 +76,14 @@ set(classes
   vtkPanoramicProjectionPass
   vtkPixelBufferObject
   vtkPointFillPass
+  vtkPBRIrradianceTexture
+  vtkPBRLUTTexture
+  vtkPBRPrefilterTexture
   vtkRenderPassCollection
   vtkRenderStepsPass
   vtkRenderbuffer
   vtkSSAAPass
+  vtkSSAOPass
   vtkSequencePass
   vtkShader
   vtkShaderProgram
@@ -125,6 +132,14 @@ set(shader_files
   glsl/vtkEDLComposeFS.glsl
   glsl/vtkEDLShadeFS.glsl
   glsl/vtkFXAAFilterFS.glsl
+  glsl/vtkFluidMapperDepthFilterBiGaussFS.glsl
+  glsl/vtkFluidMapperDepthFilterNarrowRangeFS.glsl
+  glsl/vtkFluidMapperSurfaceNormalFS.glsl
+  glsl/vtkFluidMapperThicknessAndVolumeColorFilterFS.glsl
+  glsl/vtkFluidMapperFS.glsl
+  glsl/vtkFluidMapperFinalFS.glsl
+  glsl/vtkFluidMapperGS.glsl
+  glsl/vtkFluidMapperVS.glsl
   glsl/vtkGaussianBlurPassFS.glsl
   glsl/vtkGaussianBlurPassVS.glsl
   glsl/vtkGlyph3DVS.glsl
@@ -363,10 +378,6 @@ elseif (VTK_USE_COCOA)
   vtk_module_link(VTK::RenderingOpenGL2 PUBLIC "-framework Cocoa")
 endif ()
 
-if (WIN32 AND MSVC)
-  vtk_module_link(VTK::RenderingOpenGL2 PRIVATE dbghelp)
-endif()
-
 if (ANDROID)
   vtk_module_link(VTK::RenderingOpenGL2
     PRIVATE
@@ -381,6 +392,18 @@ if (NOT ANDROID AND
     NOT APPLE_IOS AND
     NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten" AND
     NOT VTK_OPENGL_USE_GLES)
-  vtk_module_add_executable(vtkProbeOpenGLVersion vtkProbeOpenGLVersion.cxx)
-  target_link_libraries(vtkProbeOpenGLVersion PRIVATE RenderingOpenGL2)
+  set(probe_no_install)
+  if (NOT _vtk_build_INSTALL_HEADERS)
+    set(probe_no_install
+      NO_INSTALL)
+  endif ()
+  vtk_module_add_executable(vtkProbeOpenGLVersion
+    ${probe_no_install}
+    vtkProbeOpenGLVersion.cxx)
+  target_link_libraries(vtkProbeOpenGLVersion
+    PRIVATE
+      VTK::RenderingOpenGL2)
+  vtk_module_autoinit(
+    TARGETS vtkProbeOpenGLVersion
+    MODULES VTK::RenderingOpenGL2)
 endif ()

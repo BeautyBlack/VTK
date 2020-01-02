@@ -1,6 +1,6 @@
 /**
  * @file
- * Copyright 2010 University Corporation for Atmospheric
+ * Copyright 2018 University Corporation for Atmospheric
  * Research/Unidata. See COPYRIGHT file for more info.
  *
  * This file has the var and att copy functions.
@@ -13,7 +13,7 @@
 #ifdef USE_NETCDF4
 /**
  * @internal Compare two netcdf types for equality. Must have the
- * ncids as well, to find user-defined types. 
+ * ncids as well, to find user-defined types.
  *
  * @param ncid1 File ID.
  * @param typeid1 Type ID.
@@ -152,7 +152,7 @@ NC_compare_nc_types(int ncid1, int typeid1, int ncid2, int typeid2,
 
 /**
  * @internal Recursively hunt for a netCDF type id. (Code from
- * nc4internal.c); Return matching typeid or 0 if not found. 
+ * nc4internal.c); Return matching typeid or 0 if not found.
  *
  * @param ncid1 File ID.
  * @param tid1 Type ID.
@@ -226,7 +226,7 @@ NC_rec_find_nc_type(int ncid1, nc_type tid1, int ncid2, nc_type* tid2)
 
 /**
  * @internal Given a type in one file, find its equal (if any) in
- * another file. It sounds so simple, but it's a real pain! 
+ * another file. It sounds so simple, but it's a real pain!
  *
  * @param ncid1 File ID.
  * @param xtype1 Type ID.
@@ -323,10 +323,8 @@ nc_copy_var(int ncid_in, int varid_in, int ncid_out)
          return retval;
    }
 
-#ifdef USE_NETCDF4
    LOG((2, "nc_copy_var: ncid_in 0x%x varid_in %d ncid_out 0x%x",
         ncid_in, varid_in, ncid_out));
-#endif
 
    /* Make sure we are not trying to write into a netcdf-3 file
     * anything that won't fit in netcdf-3. */
@@ -343,9 +341,7 @@ nc_copy_var(int ncid_in, int varid_in, int ncid_out)
    /* Later on, we will need to know the size of this type. */
    if ((retval = nc_inq_type(ncid_in, xtype, type_name, &type_size)))
       return retval;
-#ifdef USE_NETCDF4
    LOG((3, "type %s has size %d", type_name, type_size));
-#endif
 
    /* Switch back to define mode, and create the output var. */
    retval = nc_redef(ncid_out);
@@ -395,9 +391,7 @@ nc_copy_var(int ncid_in, int varid_in, int ncid_out)
    {
       if ((retval = nc_inq_dimlen(ncid_in, dimids_in[d], &dimlen[d])))
          BAIL(retval);
-#ifdef USE_NETCDF4
       LOG((4, "nc_copy_var: there are %d data", dimlen[d]));
-#endif
    }
 
    /* If this is really a scalar, then set the dimlen to 1. */

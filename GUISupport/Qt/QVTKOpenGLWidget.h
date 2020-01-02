@@ -25,7 +25,7 @@
 class QSurfaceFormat;
 class QOpenGLContext;
 
-//class QVTKInteractor;
+// class QVTKInteractor;
 class QVTKInteractorAdapter;
 class QVTKOpenGLWindow;
 class vtkGenericOpenGLRenderWindow;
@@ -65,6 +65,7 @@ class VTKGUISUPPORTQT_EXPORT QVTKOpenGLWidget : public QWidget
 {
   Q_OBJECT
   typedef QWidget Superclass;
+
 public:
   QVTKOpenGLWidget(QWidget* parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
   QVTKOpenGLWidget(
@@ -109,6 +110,15 @@ public:
    */
   void setEnableHiDPI(bool enable) { this->VTKOpenGLWindow->setEnableHiDPI(enable); }
   bool enableHiDPI() const { return this->VTKOpenGLWindow->enableHiDPI(); }
+
+  //@{
+  /**
+   * Set/Get unscaled DPI value. Defaults to 72, which is also the default value
+   * in vtkWindow.
+   */
+  void setUnscaledDPI(int dpi) { this->VTKOpenGLWindow->setUnscaledDPI(dpi); }
+  int unscaledDPI() const { return this->VTKOpenGLWindow->unscaledDPI(); }
+  //@}
 
   //@{
   /**
@@ -188,7 +198,7 @@ public:
 
 protected:
   void resizeEvent(QResizeEvent* evt) override;
-  void paintEvent(QPaintEvent *evt) override;
+  void paintEvent(QPaintEvent* evt) override;
 
 private:
   QPointer<QVTKOpenGLWindow> VTKOpenGLWindow;

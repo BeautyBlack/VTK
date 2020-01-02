@@ -27,7 +27,7 @@
  * size.
  * @sa
  * vtkImageImport
-*/
+ */
 
 #ifndef vtkImageExport_h
 #define vtkImageExport_h
@@ -38,8 +38,8 @@
 class VTKIOIMAGE_EXPORT vtkImageExport : public vtkImageAlgorithm
 {
 public:
-  static vtkImageExport *New();
-  vtkTypeMacro(vtkImageExport,vtkImageAlgorithm);
+  static vtkImageExport* New();
+  vtkTypeMacro(vtkImageExport, vtkImageAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
@@ -52,10 +52,12 @@ public:
    * Get the (x,y,z) index dimensions of the data.  Please note
    * that C arrays are indexed in decreasing order, i.e. array[z][y][x].
    */
-  void GetDataDimensions(int *ptr);
-  int *GetDataDimensions() VTK_SIZEHINT(3) {
+  void GetDataDimensions(int* ptr);
+  int* GetDataDimensions() VTK_SIZEHINT(3)
+  {
     this->GetDataDimensions(this->DataDimensions);
-    return this->DataDimensions; }
+    return this->DataDimensions;
+  }
   //@}
 
   /**
@@ -70,25 +72,29 @@ public:
    * must match the scalar type of the data.
    */
   int GetDataScalarType();
-  const char *GetDataScalarTypeAsString() {
-    return vtkImageScalarTypeNameMacro(this->GetDataScalarType()); }
+  const char* GetDataScalarTypeAsString()
+  {
+    return vtkImageScalarTypeNameMacro(this->GetDataScalarType());
+  }
 
   //@{
   /**
    * Get miscellaneous additional information about the data.
    */
-  int *GetDataExtent() VTK_SIZEHINT(6);
-  void GetDataExtent(int *ptr);
-  double *GetDataSpacing() VTK_SIZEHINT(3);
-  void GetDataSpacing(double *ptr);
-  double *GetDataOrigin() VTK_SIZEHINT(3);
-  void GetDataOrigin(double *ptr);
+  int* GetDataExtent() VTK_SIZEHINT(6);
+  void GetDataExtent(int* ptr);
+  double* GetDataSpacing() VTK_SIZEHINT(3);
+  void GetDataSpacing(double* ptr);
+  double* GetDataOrigin() VTK_SIZEHINT(3);
+  void GetDataOrigin(double* ptr);
+  double* GetDataDirection() VTK_SIZEHINT(9);
+  void GetDataDirection(double* ptr);
   //@}
 
   /**
    * Get the input object from the image pipeline.
    */
-  vtkImageData *GetInput();
+  vtkImageData* GetInput();
 
   //@{
   /**
@@ -110,8 +116,8 @@ public:
    * From python, you can specify a pointer to a string that is
    * large enough to hold the data.
    */
-  void SetExportVoidPointer(void *);
-  void *GetExportVoidPointer() { return this->ExportVoidPointer; };
+  void SetExportVoidPointer(void*);
+  void* GetExportVoidPointer() { return this->ExportVoidPointer; }
   //@}
 
   //@{
@@ -120,8 +126,8 @@ public:
    * to the memory pointed to by SetExportVoidPointer().  You can
    * also specify a void pointer when you call Export().
    */
-  void Export() { this->Export(this->ExportVoidPointer); };
-  virtual void Export(void *);
+  void Export() { this->Export(this->ExportVoidPointer); }
+  virtual void Export(void*);
   //@}
 
   /**
@@ -131,7 +137,7 @@ public:
    * is updated.
    * WARNING: This method ignores the ImageLowerLeft flag.
    */
-  void *GetPointerToData();
+  void* GetPointerToData();
 
   /**
    * Get the user data that should be passed to the callback functions.
@@ -141,13 +147,14 @@ public:
   //@{
   /**
    * These are function pointer types for the pipeline connection
-   * callbacks.  See furhter documentation in vtkImageImport.h.
+   * callbacks.  See further documentation in vtkImageImport.h.
    */
   typedef void (*UpdateInformationCallbackType)(void*);
   typedef int (*PipelineModifiedCallbackType)(void*);
   typedef int* (*WholeExtentCallbackType)(void*);
   typedef double* (*SpacingCallbackType)(void*);
   typedef double* (*OriginCallbackType)(void*);
+  typedef double* (*DirectionCallbackType)(void*);
   typedef const char* (*ScalarTypeCallbackType)(void*);
   typedef int (*NumberOfComponentsCallbackType)(void*);
   typedef void (*PropagateUpdateExtentCallbackType)(void*, int*);
@@ -160,17 +167,18 @@ public:
   /**
    * Get pointers to the pipeline interface callbacks.
    */
-  UpdateInformationCallbackType     GetUpdateInformationCallback() const;
-  PipelineModifiedCallbackType      GetPipelineModifiedCallback() const;
-  WholeExtentCallbackType           GetWholeExtentCallback() const;
-  SpacingCallbackType               GetSpacingCallback() const;
-  OriginCallbackType                GetOriginCallback() const;
-  ScalarTypeCallbackType            GetScalarTypeCallback() const;
-  NumberOfComponentsCallbackType    GetNumberOfComponentsCallback() const;
+  UpdateInformationCallbackType GetUpdateInformationCallback() const;
+  PipelineModifiedCallbackType GetPipelineModifiedCallback() const;
+  WholeExtentCallbackType GetWholeExtentCallback() const;
+  SpacingCallbackType GetSpacingCallback() const;
+  OriginCallbackType GetOriginCallback() const;
+  DirectionCallbackType GetDirectionCallback() const;
+  ScalarTypeCallbackType GetScalarTypeCallback() const;
+  NumberOfComponentsCallbackType GetNumberOfComponentsCallback() const;
   PropagateUpdateExtentCallbackType GetPropagateUpdateExtentCallback() const;
-  UpdateDataCallbackType            GetUpdateDataCallback() const;
-  DataExtentCallbackType            GetDataExtentCallback() const;
-  BufferPointerCallbackType         GetBufferPointerCallback() const;
+  UpdateDataCallbackType GetUpdateDataCallback() const;
+  DataExtentCallbackType GetDataExtentCallback() const;
+  BufferPointerCallbackType GetBufferPointerCallback() const;
   //@}
 
 protected:
@@ -178,9 +186,8 @@ protected:
   ~vtkImageExport() override;
 
   // This is called by the superclass.
-  int RequestData(vtkInformation *request,
-                          vtkInformationVector** inputVector,
-                          vtkInformationVector* outputVector) override;
+  int RequestData(vtkInformation* request, vtkInformationVector** inputVector,
+    vtkInformationVector* outputVector) override;
 
   virtual void UpdateInformationCallback();
   virtual int PipelineModifiedCallback();
@@ -188,6 +195,7 @@ protected:
   virtual int* WholeExtentCallback();
   virtual double* SpacingCallback();
   virtual double* OriginCallback();
+  virtual double* DirectionCallback();
   virtual const char* ScalarTypeCallback();
   virtual int NumberOfComponentsCallback();
   virtual void PropagateUpdateExtentCallback(int*);
@@ -196,7 +204,7 @@ protected:
 
   vtkTypeBool ImageLowerLeft;
   int DataDimensions[3];
-  void *ExportVoidPointer;
+  void* ExportVoidPointer;
 
   vtkMTimeType LastPipelineMTime;
 
@@ -209,6 +217,7 @@ private:
   static int* WholeExtentCallbackFunction(void*);
   static double* SpacingCallbackFunction(void*);
   static double* OriginCallbackFunction(void*);
+  static double* DirectionCallbackFunction(void*);
   static const char* ScalarTypeCallbackFunction(void*);
   static int NumberOfComponentsCallbackFunction(void*);
   static void PropagateUpdateExtentCallbackFunction(void*, int*);
@@ -221,5 +230,3 @@ private:
 };
 
 #endif
-
-

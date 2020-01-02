@@ -61,6 +61,8 @@ mark_as_advanced(
   VTK_DISPATCH_TYPED_ARRAYS
   VTK_WARN_ON_DISPATCH_FAILURE)
 
+option(VTK_BUILD_SCALED_SOA_ARRAYS "Include struct-of-arrays with scaled vtkDataArray implementation." OFF)
+
 include("${CMAKE_CURRENT_SOURCE_DIR}/vtkCreateArrayDispatchArrayList.cmake")
 vtkArrayDispatch_default_array_setup()
 vtkArrayDispatch_generate_array_header(VTK_ARRAYDISPATCH_ARRAY_LIST)
@@ -206,6 +208,7 @@ set(template_classes
 
 set(sources
   vtkArrayIteratorTemplateInstantiate.cxx
+  vtkGenericDataArray.cxx
   vtkSOADataArrayTemplateInstantiate.cxx
   vtkScalarsToColors.cxx
   vtkShortArray.cxx
@@ -222,7 +225,6 @@ set(sources
   vtkTimeStamp.cxx
   vtkType.h
   vtkTypedArray.txx
-  vtkTypedDataArray.txx
   vtkUnicodeString.cxx
   vtkUnicodeStringArray.cxx
   vtkUnsignedCharArray.cxx
@@ -235,7 +237,6 @@ set(sources
   vtkVersion.cxx
   vtkVoidArray.cxx
   vtkWeakPointerBase.cxx
-  vtkWeakReference.cxx
   vtkWindow.cxx
   vtkXMLFileOutputWindow.cxx
   ${vtk_smp_sources}
@@ -244,12 +245,20 @@ set(sources
   "${CMAKE_CURRENT_BINARY_DIR}/vtkVersionMacros.h"
   )
 
+if (VTK_BUILD_SCALED_SOA_ARRAYS)
+  list (APPEND template_classes vtkScaledSOADataArrayTemplate)
+  list (APPEND sources  vtkScaledSOADataArrayTemplateInstantiate.cxx)
+  set(VTK_USE_SCALED_SOA_ARRAYS 1)
+endif ()
+configure_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/vtkVTK_USE_SCALED_SOA_ARRAYS.h.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/vtkVTK_USE_SCALED_SOA_ARRAYS.h")
+
 set(headers
   vtkABI.h
   vtkArrayIteratorIncludes.h
   vtkAssume.h
   vtkAtomicTypeConcepts.h
-  vtkAtomicTypes.h
   vtkAutoInit.h
   vtkBuffer.h
   vtkCollectionRange.h
@@ -262,13 +271,12 @@ set(headers
   vtkDataArrayValueRange_AOS.h
   vtkDataArrayValueRange_Generic.h
   vtkDataArrayTemplate.h
+  vtkEventData.h
   vtkGenericDataArrayLookupHelper.h
   vtkIOStream.h
   vtkIOStreamFwd.h
   vtkInformationInternals.h
-  vtkMappedDataArray.h
   vtkMathUtilities.h
-  vtkMersenneTwister.h
   vtkMeta.h
   vtkNew.h
   vtkSetGet.h
@@ -278,14 +286,12 @@ set(headers
   vtkTestDataArray.h
   vtkType.h
   vtkTypeTraits.h
-  vtkTypedDataArray.h
   vtkTypedDataArrayIterator.h
   vtkVariantCast.h
   vtkVariantCreate.h
   vtkVariantExtract.h
   vtkVariantInlineOperators.h
   vtkWeakPointer.h
-  vtkWeakReference.h
   vtkWin32Header.h
   vtkWindows.h
   vtkWrappingHints.h
@@ -295,7 +301,8 @@ set(headers
   "${CMAKE_CURRENT_BINARY_DIR}/vtkMathConfigure.h"
   "${CMAKE_CURRENT_BINARY_DIR}/vtkToolkits.h"
   "${CMAKE_CURRENT_BINARY_DIR}/vtkTypeListMacros.h"
-  "${CMAKE_CURRENT_BINARY_DIR}/vtkVersionMacros.h")
+  "${CMAKE_CURRENT_BINARY_DIR}/vtkVersionMacros.h"
+  "${CMAKE_CURRENT_BINARY_DIR}/vtkVTK_USE_SCALED_SOA_ARRAYS.h")
 
 set(templates
   vtkArrayIteratorTemplateImplicit.txx)
@@ -327,12 +334,13 @@ if (CMAKE_USE_PTHREADS_INIT AND CMAKE_USE_WIN32_THREADS_INIT)
         "Failed to determine the thread implementation in use by the "
         "compiler.")
     endif ()
+    string (REGEX REPLACE ".*Thread model: \((posix|win32)\).*" "\\1" thread_impl_output "${thread_impl_output}")
   endif ()
   set(_vtk_thread_impl_output "${thread_impl_output}"
     CACHE INTERNAL "thread model detection")
-  if (thread_impl_output MATCHES "Thread model: posix")
+  if (thread_impl_output MATCHES "posix")
     set(VTK_USE_PTHREADS 1)
-  elseif (thread_impl_output MATCHES "Thread model: win32")
+  elseif (thread_impl_output MATCHES "win32")
     set(VTK_USE_WIN32_THREADS 1)
   else ()
     set(VTK_USE_PTHREADS 1)
@@ -423,6 +431,8 @@ check_cxx_expression_compiles("std::isnan(0.0)" "cmath" VTK_HAS_STD_ISNAN)
 check_cxx_expression_compiles("std::isinf(0.0)" "cmath" VTK_HAS_STD_ISINF)
 check_cxx_expression_compiles("std::isfinite(0.0)" "cmath" VTK_HAS_STD_ISFINITE)
 
+include(CheckSymbolExists)
+
 # Check C99 <math.h> next, where the C99 standard says these must be.
 # (they will be found even if they are defined as macros)
 check_symbol_exists(isnan "math.h" VTK_HAS_ISNAN)
@@ -490,6 +500,4 @@ vtk_module_link(VTK::CommonCore
     $<$<PLATFORM_ID:Android>:log>)
 vtk_module_compile_features(VTK::CommonCore
   PUBLIC
-    cxx_std_11
-    cxx_nullptr
-    cxx_override)
+    cxx_std_11)

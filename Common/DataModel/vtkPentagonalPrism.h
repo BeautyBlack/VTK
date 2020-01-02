@@ -37,13 +37,13 @@
  * http://dilbert.engr.ucdavis.edu/~suku/nem/papers/polyelas.pdf
  * NOTE: An additional copy of this paper is located at:
  * http://www.vtk.org/Wiki/File:ApplicationOfPolygonalFiniteElementsInLinearElasticity.pdf
-*/
+ */
 
 #ifndef vtkPentagonalPrism_h
 #define vtkPentagonalPrism_h
 
-#include "vtkCommonDataModelModule.h" // For export macro
 #include "vtkCell3D.h"
+#include "vtkCommonDataModelModule.h" // For export macro
 
 class vtkLine;
 class vtkPolygon;
@@ -53,42 +53,44 @@ class vtkTriangle;
 class VTKCOMMONDATAMODEL_EXPORT vtkPentagonalPrism : public vtkCell3D
 {
 public:
-  static vtkPentagonalPrism *New();
-  vtkTypeMacro(vtkPentagonalPrism,vtkCell3D);
+  static vtkPentagonalPrism* New();
+  vtkTypeMacro(vtkPentagonalPrism, vtkCell3D);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   //@{
   /**
    * See vtkCell3D API for description of these methods.
    */
-  void GetEdgePoints(int edgeId, int* &pts) override;
-  void GetFacePoints(int faceId, int* &pts) override;
+  void GetEdgePoints(vtkIdType edgeId, const vtkIdType*& pts) override;
+  // @deprecated Replaced by GetEdgePoints(vtkIdType, const vtkIdType*&) as of VTK 9.0
+  VTK_LEGACY(virtual void GetEdgePoints(int edgeId, int*& pts) override);
+  void GetFacePoints(vtkIdType faceId, const vtkIdType*& pts) override;
+  // @deprecated Replaced by GetFacePoints(vtkIdType, const vtkIdType*&) as of VTK 9.0
+  VTK_LEGACY(virtual void GetFacePoints(int faceId, int*& pts) override);
   //@}
 
   //@{
   /**
    * See the vtkCell3D API for descriptions of these methods.
    */
-  int GetCellType() override {return VTK_PENTAGONAL_PRISM;};
-  int GetCellDimension() override {return 3;};
-  int GetNumberOfEdges() override {return 15;};
-  int GetNumberOfFaces() override {return 7;};
-  vtkCell *GetEdge(int edgeId) override;
-  vtkCell *GetFace(int faceId) override;
-  int CellBoundary(int subId, const double pcoords[3], vtkIdList *pts) override;
+  int GetCellType() override { return VTK_PENTAGONAL_PRISM; }
+  int GetCellDimension() override { return 3; }
+  int GetNumberOfEdges() override { return 15; }
+  int GetNumberOfFaces() override { return 7; }
+  vtkCell* GetEdge(int edgeId) override;
+  vtkCell* GetFace(int faceId) override;
+  int CellBoundary(int subId, const double pcoords[3], vtkIdList* pts) override;
   //@}
 
-  int EvaluatePosition(const double x[3], double closestPoint[3],
-                       int& subId, double pcoords[3],
-                       double& dist2, double weights[]) override;
-  void EvaluateLocation(int& subId, const double pcoords[3], double x[3],
-                        double *weights) override;
-  int IntersectWithLine(const double p1[3], const double p2[3], double tol, double& t,
-                        double x[3], double pcoords[3], int& subId) override;
-  int Triangulate(int index, vtkIdList *ptIds, vtkPoints *pts) override;
-  void Derivatives(int subId, const double pcoords[3], const double *values,
-                   int dim, double *derivs) override;
-  double *GetParametricCoords() override;
+  int EvaluatePosition(const double x[3], double closestPoint[3], int& subId, double pcoords[3],
+    double& dist2, double weights[]) override;
+  void EvaluateLocation(int& subId, const double pcoords[3], double x[3], double* weights) override;
+  int IntersectWithLine(const double p1[3], const double p2[3], double tol, double& t, double x[3],
+    double pcoords[3], int& subId) override;
+  int Triangulate(int index, vtkIdList* ptIds, vtkPoints* pts) override;
+  void Derivatives(
+    int subId, const double pcoords[3], const double* values, int dim, double* derivs) override;
+  double* GetParametricCoords() override;
 
   /**
    * Return the center of the wedge in parametric coordinates.
@@ -122,9 +124,13 @@ public:
   /**
    * Return the ids of the vertices defining edge/face (`edgeId`/`faceId').
    * Ids are related to the cell, not to the dataset.
+   *
+   * @note The return type changed. It used to be int*, it is now const vtkIdType*.
+   * This is so ids are unified between vtkCell and vtkPoints, and so vtkCell ids
+   * can be used as inputs in algorithms such as vtkPolygon::ComputeNormal.
    */
-  static int *GetEdgeArray(int edgeId);
-  static int *GetFaceArray(int faceId);
+  static const vtkIdType* GetEdgeArray(vtkIdType edgeId);
+  static const vtkIdType* GetFaceArray(vtkIdType faceId);
   //@}
 
   /**
@@ -132,16 +138,16 @@ public:
    * matrix. Returns 9 elements of 3x3 inverse Jacobian plus interpolation
    * function derivatives.
    */
-  void JacobianInverse(const double pcoords[3], double **inverse, double derivs[30]);
+  void JacobianInverse(const double pcoords[3], double** inverse, double derivs[30]);
 
 protected:
   vtkPentagonalPrism();
   ~vtkPentagonalPrism() override;
 
-  vtkLine          *Line;
-  vtkQuad          *Quad;
-  vtkPolygon       *Polygon;
-  vtkTriangle      *Triangle;
+  vtkLine* Line;
+  vtkQuad* Quad;
+  vtkPolygon* Polygon;
+  vtkTriangle* Triangle;
 
 private:
   vtkPentagonalPrism(const vtkPentagonalPrism&) = delete;

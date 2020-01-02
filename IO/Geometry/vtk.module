@@ -8,16 +8,21 @@ KIT
 GROUPS
   StandAlone
 DEPENDS
+  VTK::CommonCore
   VTK::CommonDataModel
   VTK::CommonExecutionModel
   VTK::IOCore
   VTK::IOLegacy
 PRIVATE_DEPENDS
-  VTK::CommonCore
   VTK::CommonMisc
   VTK::CommonSystem
   VTK::CommonTransforms
+  VTK::FiltersGeneral
+  VTK::FiltersHybrid
+  VTK::ImagingCore
   VTK::IOImage
+  VTK::RenderingCore
+  VTK::jsoncpp
   VTK::vtksys
   VTK::zlib
 TEST_DEPENDS

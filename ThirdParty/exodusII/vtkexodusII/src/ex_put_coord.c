@@ -50,11 +50,8 @@
  *
  *****************************************************************************/
 
-#include "exodusII.h"     // for ex_err, etc
-#include "exodusII_int.h" // for EX_FATAL, ex_comp_ws, etc
-#include "vtk_netcdf.h"       // for NC_NOERR, nc_inq_varid, etc
-#include <stddef.h>       // for size_t
-#include <stdio.h>
+#include "exodusII.h"
+#include "exodusII_int.h"
 
 /*!
 The function ex_put_coord() writes the nodal coordinates of the nodes
@@ -117,7 +114,7 @@ error = ex_put_coord(exoid, NULL, NULL, z);
 int ex_put_coord(int exoid, const void *x_coor, const void *y_coor, const void *z_coor)
 {
   int status;
-  int coordid;
+  int coordid = -1;
   int coordidx, coordidy, coordidz;
 
   int    numnoddim, ndimdim;
@@ -125,7 +122,7 @@ int ex_put_coord(int exoid, const void *x_coor, const void *y_coor, const void *
   char   errmsg[MAX_ERR_LENGTH];
 
   EX_FUNC_ENTER();
-  ex_check_valid_file_id(exoid, __func__);
+  ex__check_valid_file_id(exoid, __func__);
 
   /* inquire id's of previously defined dimensions  */
 
@@ -138,21 +135,21 @@ int ex_put_coord(int exoid, const void *x_coor, const void *y_coor, const void *
   if ((status = nc_inq_dimlen(exoid, numnoddim, &num_nod)) != NC_NOERR) {
     snprintf(errmsg, MAX_ERR_LENGTH,
              "ERROR: inquire failed to return number of nodes in file id %d", exoid);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
     EX_FUNC_LEAVE(EX_FATAL);
   }
 
   if ((status = nc_inq_dimid(exoid, DIM_NUM_DIM, &ndimdim)) != NC_NOERR) {
     snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to locate number of dimensions in file id %d",
              exoid);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
     EX_FUNC_LEAVE(EX_FATAL);
   }
 
   if ((status = nc_inq_dimlen(exoid, ndimdim, &num_dim)) != NC_NOERR) {
     snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to get number of dimensions in file id %d",
              exoid);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
     EX_FUNC_LEAVE(EX_FATAL);
   }
 
@@ -160,7 +157,7 @@ int ex_put_coord(int exoid, const void *x_coor, const void *y_coor, const void *
   if ((status = nc_inq_varid(exoid, VAR_COORD_X, &coordidx)) != NC_NOERR) {
     snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to locate x nodal coordinates in file id %d",
              exoid);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
     EX_FUNC_LEAVE(EX_FATAL);
   }
 
@@ -168,23 +165,23 @@ int ex_put_coord(int exoid, const void *x_coor, const void *y_coor, const void *
     if ((status = nc_inq_varid(exoid, VAR_COORD_Y, &coordidy)) != NC_NOERR) {
       snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to locate y nodal coordinates in file id %d",
                exoid);
-      ex_err(__func__, errmsg, status);
+      ex_err_fn(exoid, __func__, errmsg, status);
       EX_FUNC_LEAVE(EX_FATAL);
     }
   }
   else {
-    coordidy = 0;
+    coordidy = -1;
   }
   if (num_dim > 2) {
     if ((status = nc_inq_varid(exoid, VAR_COORD_Z, &coordidz)) != NC_NOERR) {
       snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to locate z nodal coordinates in file id %d",
                exoid);
-      ex_err(__func__, errmsg, status);
+      ex_err_fn(exoid, __func__, errmsg, status);
       EX_FUNC_LEAVE(EX_FATAL);
     }
   }
   else {
-    coordidz = 0;
+    coordidz = -1;
   }
 
   /* write out the coordinates  */
@@ -208,8 +205,8 @@ int ex_put_coord(int exoid, const void *x_coor, const void *y_coor, const void *
       coordid = coordidz;
     }
 
-    if (coor != NULL && coordid != 0) {
-      if (ex_comp_ws(exoid) == 4) {
+    if (coor != NULL && coordid != -1) {
+      if (ex__comp_ws(exoid) == 4) {
         status = nc_put_var_float(exoid, coordid, coor);
       }
       else {
@@ -219,7 +216,7 @@ int ex_put_coord(int exoid, const void *x_coor, const void *y_coor, const void *
       if (status != NC_NOERR) {
         snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to put %s coord array in file id %d", which,
                  exoid);
-        ex_err(__func__, errmsg, status);
+        ex_err_fn(exoid, __func__, errmsg, status);
         EX_FUNC_LEAVE(EX_FATAL);
       }
     }

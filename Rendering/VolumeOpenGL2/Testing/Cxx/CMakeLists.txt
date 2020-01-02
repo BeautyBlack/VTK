@@ -1,5 +1,6 @@
 set (VolumeOpenGL2CxxTests
   TestGPURayCastCellData.cxx
+  TestGPURayCastChangedArray.cxx
   TestGPURayCastDepthPeeling.cxx
   TestGPURayCastDepthPeelingBoxWidget.cxx
   TestGPURayCastDepthPeelingBlendModes.cxx
@@ -9,6 +10,7 @@ set (VolumeOpenGL2CxxTests
   TestGPURayCastDepthPeelingTransparentPolyData.cxx
   TestGPURayCastIsosurface.cxx
   TestGPURayCastJittering.cxx
+  TestGPURayCastSlicePlane.cxx
   TestGPURayCastTextureStreaming.cxx
   TestGPURayCastTextureStreamingMask.cxx
   TestGPURayCastToggleJittering.cxx

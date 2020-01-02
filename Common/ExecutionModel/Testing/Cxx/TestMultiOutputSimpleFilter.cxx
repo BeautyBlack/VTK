@@ -21,11 +21,11 @@ namespace
 class vtkTestAlgorithm : public vtkPassInputTypeAlgorithm
 {
 public:
-  static vtkTestAlgorithm* New() { return new vtkTestAlgorithm; }
+  static vtkTestAlgorithm* New();
   vtkTestAlgorithm(const vtkTestAlgorithm&) = delete;
   void operator=(const vtkTestAlgorithm&) = delete;
 
-  vtkTypeMacro(vtkTestAlgorithm, vtkPassInputTypeAlgorithm)
+  vtkTypeMacro(vtkTestAlgorithm, vtkPassInputTypeAlgorithm);
 
 protected:
   vtkTestAlgorithm()
@@ -87,6 +87,8 @@ protected:
     return 1;
   }
 };
+
+vtkStandardNewMacro(vtkTestAlgorithm);
 
 void AddPerBlockFieldData(vtkCompositeDataSet* data)
 {
@@ -220,10 +222,14 @@ int TestComposite(std::string& inputDataFile, bool isAMR)
 
 int TestMultiOutputSimpleFilter(int argc, char* argv[])
 {
-  std::string inputAMR = vtkTestUtilities::ExpandDataFileName(
-    argc, argv, "Data/AMR/HierarchicalBoxDataset.v1.1.vthb");
-  std::string inputMultiblock = vtkTestUtilities::ExpandDataFileName(
-    argc, argv, "Data/many_blocks/many_blocks.vtm");
+  char const* tmp =
+    vtkTestUtilities::ExpandDataFileName(argc, argv, "Data/AMR/HierarchicalBoxDataset.v1.1.vthb");
+  std::string inputAMR = tmp;
+  delete[] tmp;
+
+  tmp = vtkTestUtilities::ExpandDataFileName(argc, argv, "Data/many_blocks/many_blocks.vtm");
+  std::string inputMultiblock = tmp;
+  delete[] tmp;
 
   int retVal = TestComposite(inputAMR, true);
 

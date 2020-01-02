@@ -1,9 +1,13 @@
 #include <vtkColorTransferFunction.h>
 #include <vtkContourValues.h>
+#include <vtkDataArray.h>
+#include <vtkFloatingPointExceptions.h>
+#include <vtkImageData.h>
 #include <vtkInteractorStyleTrackballCamera.h>
 #include <vtkNew.h>
 #include <vtkOpenGLGPUVolumeRayCastMapper.h>
 #include <vtkPiecewiseFunction.h>
+#include <vtkPointData.h>
 #include <vtkRTAnalyticSource.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
@@ -14,9 +18,14 @@
 //----------------------------------------------------------------------------
 int TestGPURayCastIsosurface(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 {
+
+  vtkFloatingPointExceptions::Disable();
   vtkNew<vtkRTAnalyticSource> data;
   data->SetWholeExtent(-100, 100, -100, 100, -100, 100);
-
+  data->Update();
+  std::cout << "range: " << data->GetOutput()->GetPointData()->GetScalars()->GetRange()[0] << ", "
+            << data->GetOutput()->GetPointData()->GetScalars()->GetRange()[1] << std::endl;
+  ;
   vtkNew<vtkOpenGLGPUVolumeRayCastMapper> mapper;
   mapper->SetInputConnection(data->GetOutputPort());
   mapper->AutoAdjustSampleDistancesOff();

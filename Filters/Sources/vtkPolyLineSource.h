@@ -18,48 +18,22 @@
  *
  * vtkPolyLineSource is a source object that creates a poly line from
  * user-specified points. The output is a vtkPolyLine.
-*/
+ */
 
 #ifndef vtkPolyLineSource_h
 #define vtkPolyLineSource_h
 
 #include "vtkFiltersSourcesModule.h" // For export macro
-#include "vtkPolyDataAlgorithm.h"
+#include "vtkPolyPointSource.h"
 
 class vtkPoints;
 
-class VTKFILTERSSOURCES_EXPORT vtkPolyLineSource : public vtkPolyDataAlgorithm
+class VTKFILTERSSOURCES_EXPORT vtkPolyLineSource : public vtkPolyPointSource
 {
 public:
   static vtkPolyLineSource* New();
-  vtkTypeMacro(vtkPolyLineSource, vtkPolyDataAlgorithm);
+  vtkTypeMacro(vtkPolyLineSource, vtkPolyPointSource);
   void PrintSelf(ostream& os, vtkIndent indent) override;
-
-  //@{
-  /**
-   * Set the number of points in the poly line.
-   */
-  void SetNumberOfPoints(vtkIdType numPoints);
-  vtkIdType GetNumberOfPoints();
-  //@}
-
-  /**
-   * Resize while preserving data.
-   */
-  void Resize(vtkIdType numPoints);
-
-  /**
-   * Set a point location.
-   */
-  void SetPoint(vtkIdType id, double x, double y, double z);
-
-  //@{
-  /**
-   * Get the points.
-   */
-  void SetPoints(vtkPoints* points);
-  vtkGetObjectMacro(Points, vtkPoints);
-  //@}
 
   //@{
   /**
@@ -74,9 +48,7 @@ protected:
   vtkPolyLineSource();
   ~vtkPolyLineSource() override;
 
-  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector *) override;
-
-  vtkPoints* Points;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
   vtkTypeBool Closed;
 

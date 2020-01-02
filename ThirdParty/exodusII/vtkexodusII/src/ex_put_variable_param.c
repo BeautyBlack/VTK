@@ -34,9 +34,7 @@
  */
 
 #include "exodusII.h"     // for ex_err, etc
-#include "exodusII_int.h" // for ex_compress_variable, etc
-#include "vtk_netcdf.h"       // for NC_NOERR, nc_def_var, etc
-#include <stdio.h>
+#include "exodusII_int.h" // for ex__compress_variable, etc
 
 /*! \cond INTERNAL */
 static int ex_prepare_result_var(int exoid, int num_vars, char *type_name, char *dim_name,
@@ -59,12 +57,12 @@ static int ex_prepare_result_var(int exoid, int num_vars, char *type_name, char 
                "ERROR: %s variable name parameters are already defined "
                "in file id %d",
                type_name, exoid);
-      ex_err(__func__, errmsg, status);
+      ex_err_fn(exoid, __func__, errmsg, status);
     }
     else {
       snprintf(errmsg, MAX_ERR_LENGTH,
                "ERROR: failed to define number of %s variables in file id %d", type_name, exoid);
-      ex_err(__func__, errmsg, status);
+      ex_err_fn(exoid, __func__, errmsg, status);
     }
     return (EX_FATAL); /* exit define mode and return */
   }
@@ -72,7 +70,7 @@ static int ex_prepare_result_var(int exoid, int num_vars, char *type_name, char 
   /* Now define type_name variable name variable */
   if ((status = nc_inq_dimid(exoid, DIM_STR_NAME, &dim_str_name)) != NC_NOERR) {
     snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to get string length in file id %d", exoid);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
     return (EX_FATAL);
   }
 
@@ -82,12 +80,12 @@ static int ex_prepare_result_var(int exoid, int num_vars, char *type_name, char 
     if (status == NC_ENAMEINUSE) {
       snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: %s variable names are already defined in file id %d",
                type_name, exoid);
-      ex_err(__func__, errmsg, status);
+      ex_err_fn(exoid, __func__, errmsg, status);
     }
     else {
       snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to define %s variable names in file id %d",
                type_name, exoid);
-      ex_err(__func__, errmsg, status);
+      ex_err_fn(exoid, __func__, errmsg, status);
     }
     return (EX_FATAL); /* exit define mode and return */
   }
@@ -126,16 +124,16 @@ described. Use one
 
 | ex_entity_type|  description              |
 |---------------|---------------------------|
-| EX_GLOBAL     |  Global entity type       |
-| EX_NODAL      |  Nodal entity type        |
-| EX_NODE_SET   |  Node Set entity type     |
-| EX_EDGE_BLOCK |  Edge Block entity type   |
-| EX_EDGE_SET   |  Edge Set entity type     |
-| EX_FACE_BLOCK |  Face Block entity type   |
-| EX_FACE_SET   |  Face Set entity type     |
-| EX_ELEM_BLOCK |  Element Block entity type|
-| EX_ELEM_SET   |  Element Set entity type  |
-| EX_SIDE_SET   |  Side Set entity type     |
+| #EX_GLOBAL     |  Global entity type       |
+| #EX_NODAL      |  Nodal entity type        |
+| #EX_NODE_SET   |  Node Set entity type     |
+| #EX_EDGE_BLOCK |  Edge Block entity type   |
+| #EX_EDGE_SET   |  Edge Set entity type     |
+| #EX_FACE_BLOCK |  Face Block entity type   |
+| #EX_FACE_SET   |  Face Set entity type     |
+| #EX_ELEM_BLOCK |  Element Block entity type|
+| #EX_ELEM_SET   |  Element Set entity type  |
+| #EX_SIDE_SET   |  Side Set entity type     |
 
 For example, the following code segment initializes the data file to
 store global variables:
@@ -159,13 +157,13 @@ int ex_put_variable_param(int exoid, ex_entity_type obj_type, int num_vars)
   int  status;
 
   EX_FUNC_ENTER();
-  ex_check_valid_file_id(exoid, __func__);
+  ex__check_valid_file_id(exoid, __func__);
 
   /* if no variables are to be stored, return with warning */
   if (num_vars == 0) {
     snprintf(errmsg, MAX_ERR_LENGTH, "Warning: zero %s variables specified for file id %d",
              ex_name_of_object(obj_type), exoid);
-    ex_err(__func__, errmsg, EX_BADPARAM);
+    ex_err_fn(exoid, __func__, errmsg, EX_BADPARAM);
 
     EX_FUNC_LEAVE(EX_WARN);
   }
@@ -176,14 +174,14 @@ int ex_put_variable_param(int exoid, ex_entity_type obj_type, int num_vars)
       obj_type != EX_GLOBAL) {
     snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: Invalid variable type %d specified in file id %d",
              obj_type, exoid);
-    ex_err(__func__, errmsg, EX_BADPARAM);
+    ex_err_fn(exoid, __func__, errmsg, EX_BADPARAM);
     EX_FUNC_LEAVE(EX_WARN);
   }
 
   /* inquire previously defined dimensions  */
   if ((status = nc_inq_dimid(exoid, DIM_TIME, &time_dim)) != NC_NOERR) {
     snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to locate time dimension in file id %d", exoid);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
     EX_FUNC_LEAVE(EX_FATAL);
   }
 
@@ -197,14 +195,14 @@ int ex_put_variable_param(int exoid, ex_entity_type obj_type, int num_vars)
   if ((status = nc_inq_dimid(exoid, DIM_STR_NAME, &dim_str_name)) < 0) {
     snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to get name string length in file id %d",
              exoid);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
     EX_FUNC_LEAVE(EX_FATAL);
   }
 
   /* put file into define mode  */
   if ((status = nc_redef(exoid)) != NC_NOERR) {
     snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to put file id %d into define mode", exoid);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
     EX_FUNC_LEAVE(EX_FATAL);
   }
 
@@ -218,7 +216,7 @@ int ex_put_variable_param(int exoid, ex_entity_type obj_type, int num_vars)
     if ((status = nc_inq_dimid(exoid, DIM_NUM_GLO_VAR, &dimid)) != NC_NOERR) {
       snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to get global variable count in file id %d",
                exoid);
-      ex_err(__func__, errmsg, status);
+      ex_err_fn(exoid, __func__, errmsg, status);
       EX_FUNC_LEAVE(EX_FATAL);
     }
     dims[0] = time_dim;
@@ -227,10 +225,10 @@ int ex_put_variable_param(int exoid, ex_entity_type obj_type, int num_vars)
         NC_NOERR) {
       snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to define global variables in file id %d",
                exoid);
-      ex_err(__func__, errmsg, status);
+      ex_err_fn(exoid, __func__, errmsg, status);
       goto error_ret; /* exit define mode and return */
     }
-    ex_compress_variable(exoid, varid, 2);
+    ex__compress_variable(exoid, varid, 2);
   }
 
   else if (obj_type == EX_NODAL) {
@@ -253,12 +251,12 @@ int ex_put_variable_param(int exoid, ex_entity_type obj_type, int num_vars)
                  "ERROR: nodal variable name parameters are already "
                  "defined in file id %d",
                  exoid);
-        ex_err(__func__, errmsg, status);
+        ex_err_fn(exoid, __func__, errmsg, status);
       }
       else {
         snprintf(errmsg, MAX_ERR_LENGTH,
                  "ERROR: failed to define number of nodal variables in file id %d", exoid);
-        ex_err(__func__, errmsg, status);
+        ex_err_fn(exoid, __func__, errmsg, status);
       }
       goto error_ret; /* exit define mode and return */
     }
@@ -271,10 +269,10 @@ int ex_put_variable_param(int exoid, ex_entity_type obj_type, int num_vars)
           NC_NOERR) {
         snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to define nodal variable %d in file id %d",
                  i, exoid);
-        ex_err(__func__, errmsg, status);
+        ex_err_fn(exoid, __func__, errmsg, status);
         goto error_ret; /* exit define mode and return */
       }
-      ex_compress_variable(exoid, varid, 2);
+      ex__compress_variable(exoid, varid, 2);
     }
 
     /* Now define nodal variable name variable */
@@ -284,12 +282,12 @@ int ex_put_variable_param(int exoid, ex_entity_type obj_type, int num_vars)
       if (status == NC_ENAMEINUSE) {
         snprintf(errmsg, MAX_ERR_LENGTH,
                  "ERROR: nodal variable names are already defined in file id %d", exoid);
-        ex_err(__func__, errmsg, status);
+        ex_err_fn(exoid, __func__, errmsg, status);
       }
       else {
         snprintf(errmsg, MAX_ERR_LENGTH,
                  "ERROR: failed to define nodal variable names in file id %d", exoid);
-        ex_err(__func__, errmsg, status);
+        ex_err_fn(exoid, __func__, errmsg, status);
       }
       goto error_ret; /* exit define mode and return */
     }
@@ -350,9 +348,7 @@ int ex_put_variable_param(int exoid, ex_entity_type obj_type, int num_vars)
   }
 
   /* leave define mode  */
-  if ((status = nc_enddef(exoid)) != NC_NOERR) {
-    snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to complete definition in file id %d", exoid);
-    ex_err(__func__, errmsg, status);
+  if ((status = ex__leavedef(exoid, __func__)) != NC_NOERR) {
     EX_FUNC_LEAVE(EX_FATAL);
   }
 
@@ -360,9 +356,6 @@ int ex_put_variable_param(int exoid, ex_entity_type obj_type, int num_vars)
 
 /* Fatal error: exit definition mode and return */
 error_ret:
-  if ((status = nc_enddef(exoid)) != NC_NOERR) { /* exit define mode */
-    snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to complete definition for file id %d", exoid);
-    ex_err(__func__, errmsg, status);
-  }
+  ex__leavedef(exoid, __func__);
   EX_FUNC_LEAVE(EX_FATAL);
 }

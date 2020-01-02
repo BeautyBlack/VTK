@@ -51,8 +51,6 @@
 
 #include <exodusII.h>     // for ex_err, etc
 #include <exodusII_int.h> // for EX_FATAL, etc
-#include <vtk_netcdf.h>       // for NC_NOERR, nc_get_var_int, etc
-#include <stdio.h>
 
 int ex_get_eb_info_global(int exoid, void_int *el_blk_ids, void_int *el_blk_cnts)
 {
@@ -62,13 +60,13 @@ int ex_get_eb_info_global(int exoid, void_int *el_blk_ids, void_int *el_blk_cnts
   /*-----------------------------Execution begins-----------------------------*/
 
   EX_FUNC_ENTER();
-  ex_check_valid_file_id(exoid, __func__);
+  ex__check_valid_file_id(exoid, __func__);
 
   /* Find the variable ID for the element block IDs */
   if ((status = nc_inq_varid(exoid, VAR_ELBLK_IDS_GLOBAL, &varid)) != NC_NOERR) {
     snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to find variable ID for \"%s\" in file ID %d",
              VAR_ELBLK_IDS_GLOBAL, exoid);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
 
     EX_FUNC_LEAVE(EX_FATAL);
   }
@@ -83,7 +81,7 @@ int ex_get_eb_info_global(int exoid, void_int *el_blk_ids, void_int *el_blk_cnts
   if (status != NC_NOERR) {
     snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to get variable \"%s\" from file ID %d",
              VAR_ELBLK_IDS_GLOBAL, exoid);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
 
     EX_FUNC_LEAVE(EX_FATAL);
   }
@@ -92,7 +90,7 @@ int ex_get_eb_info_global(int exoid, void_int *el_blk_ids, void_int *el_blk_cnts
   if ((status = nc_inq_varid(exoid, VAR_ELBLK_CNT_GLOBAL, &varid)) != NC_NOERR) {
     snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to find variable ID for \"%s\" in file ID %d",
              VAR_ELBLK_CNT_GLOBAL, exoid);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
 
     EX_FUNC_LEAVE(EX_FATAL);
   }
@@ -107,7 +105,7 @@ int ex_get_eb_info_global(int exoid, void_int *el_blk_ids, void_int *el_blk_cnts
   if (status != NC_NOERR) {
     snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to get variable \"%s\" from file ID %d",
              VAR_ELBLK_CNT_GLOBAL, exoid);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
 
     EX_FUNC_LEAVE(EX_FATAL);
   }

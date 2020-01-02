@@ -33,24 +33,23 @@
  * Guenole Harel and Jerome Dubois, 2018.
  * This work was supported by Commissariat a l'Energie Atomique
  * CEA, DAM, DIF, F-91297 Arpajon, France.
-*/
+ */
 
 #ifndef vtkHyperTreeGridOrientedCursor_h
 #define vtkHyperTreeGridOrientedCursor_h
 
 #include "vtkCommonDataModelModule.h" // For export macro
-#include "vtkHyperTreeGridEntry.h" // Used internally
+#include "vtkHyperTreeGridEntry.h"    // Used internally
 #include "vtkObject.h"
 
 class vtkHyperTree;
 class vtkHyperTreeGrid;
 
-
 class VTKCOMMONDATAMODEL_EXPORT vtkHyperTreeGridOrientedCursor : public vtkObject
 {
 public:
   vtkTypeMacro(vtkHyperTreeGridOrientedCursor, vtkObject);
-  void PrintSelf( ostream& os, vtkIndent indent ) override;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   static vtkHyperTreeGridOrientedCursor* New();
 
   /**
@@ -62,17 +61,18 @@ public:
   /**
    * Initialize cursor at root of given tree index in grid.
    */
-  void Initialize( vtkHyperTreeGrid* grid, vtkIdType treeIndex, bool create = false );
+  void Initialize(vtkHyperTreeGrid* grid, vtkIdType treeIndex, bool create = false);
 
   /**
    * JB
    */
-  void Initialize( vtkHyperTreeGrid* grid, vtkHyperTree* tree, unsigned int level, vtkIdType index );
+  void Initialize(vtkHyperTreeGrid* grid, vtkHyperTree* tree, unsigned int level, vtkIdType index);
 
   /**
    * JB
    */
-  void Initialize( vtkHyperTreeGrid* grid, vtkHyperTree* tree, unsigned int level, vtkHyperTreeGridEntry& entry );
+  void Initialize(
+    vtkHyperTreeGrid* grid, vtkHyperTree* tree, unsigned int level, vtkHyperTreeGridEntry& entry);
 
   //@{
   /**
@@ -119,14 +119,25 @@ public:
   unsigned char GetNumberOfChildren();
 
   /**
-   * JB Fait chier normalement on devrait passer par GetEntry
+   * JB
    */
-  void SetGlobalIndexStart( vtkIdType index );
+  void SetGlobalIndexStart(vtkIdType index);
 
   /**
-   * JB Fait chier normalement on devrait passer par GetEntry
+   * JB
    */
-  void SetGlobalIndexFromLocal( vtkIdType index );
+  void SetGlobalIndexFromLocal(vtkIdType index);
+
+  /**
+   * Set the blanking mask is empty or not
+   * \pre not_tree: tree
+   */
+  void SetMask(bool state);
+
+  /**
+   * Determine whether blanking mask is empty or not
+   */
+  bool IsMasked();
 
   /**
    * Is the cursor pointing to a leaf?
@@ -150,10 +161,12 @@ public:
 
   /**
    * Move the cursor to child `child' of the current vertex.
+   * \pre not_tree: HasTree()
    * \pre not_leaf: !IsLeaf()
-   * \pre valid_child: ichild>=0 && ichild<this->GetNumberOfChildren()
+   * \pre valid_child: ichild>=0 && ichild<GetNumberOfChildren()
+   * \pre depth_limiter: GetLevel() <= GetDepthLimiter()
    */
-  void ToChild( unsigned char );
+  void ToChild(unsigned char ichild);
 
 protected:
   /**

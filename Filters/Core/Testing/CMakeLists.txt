@@ -6,7 +6,9 @@ vtk_module_test_data(
   Data/cow.vtp
   Data/delaunay3d.vtu
   Data/disk_out_ref_surface.vtp
-  Data/explicitStructuredGrid.vtu)
+  Data/explicitStructuredGrid.vtu
+  Data/tex_debug.jpg
+  Data/wavelet300Arrays.vti)
 
 add_subdirectory(Cxx)
 

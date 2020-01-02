@@ -3,7 +3,7 @@ Error messages and library version.
 
 These functions return the library version, and error messages.
 
-Copyright 2010 University Corporation for Atmospheric
+Copyright 2018 University Corporation for Atmospheric
 Research/Unidata. See COPYRIGHT file for more info.
 */
 
@@ -196,6 +196,8 @@ const char *nc_strerror(int ncerr1)
 	 return "NetCDF: cannot delete file";
       case NC_EINTERNAL:
 	 return "NetCDF: internal library error; Please contact Unidata support";
+      case NC_EPNETCDF:
+	 return "NetCDF: PnetCDF error";
       case NC_EHDFERR:
 	 return "NetCDF: HDF error";
       case NC_ECANTREAD:
@@ -215,7 +217,7 @@ const char *nc_strerror(int ncerr1)
       case NC_ENOCOMPOUND:
 	 return "NetCDF: Can't create HDF5 compound type";
       case NC_EATTEXISTS:
-	 return "NetCDF: Attempt to create attribute that alread exists";
+	 return "NetCDF: Attempt to create attribute that already exists";
       case NC_ENOTNC4:
 	 return "NetCDF: Attempting netcdf-4 operation on netcdf-3 file";
       case NC_ESTRICTNC3:
@@ -243,7 +245,7 @@ const char *nc_strerror(int ncerr1)
       case NC_ELATEDEF:
 	 return "NetCDF: Attempt to define var properties, like deflate, after enddef.";
       case NC_EDIMSCALE:
-	 return "NetCDF: Probem with HDF5 dimscales.";
+	 return "NetCDF: Problem with HDF5 dimscales.";
       case NC_ENOGRP:
 	 return "NetCDF: No group found.";
       case NC_ESTORAGE:
@@ -262,9 +264,11 @@ const char *nc_strerror(int ncerr1)
       case NC_EMPI: return "NetCDF: MPI operation failed.";
       case NC_ERCFILE:
 	return "NetCDF: RC File Failure.";
-   case NC_ENULLPAD:
-     return "NetCDF: File fails strict Null-Byte Header check.";
-      default:
+     case NC_ENULLPAD:
+       return "NetCDF: File fails strict Null-Byte Header check.";
+     case NC_EINMEMORY:
+       return "NetCDF: In-memory File operation failed.";
+     default:
 #ifdef USE_PNETCDF
         /* The behavior of ncmpi_strerror here is to return
            NULL, not a string.  This causes problems in (at least)

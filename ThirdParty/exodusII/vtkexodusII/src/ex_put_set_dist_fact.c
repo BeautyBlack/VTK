@@ -52,9 +52,6 @@
 
 #include "exodusII.h"     // for ex_err, ex_name_of_object, etc
 #include "exodusII_int.h" // for EX_FATAL, EX_WARN, etc
-#include "vtk_netcdf.h"       // for NC_NOERR, nc_inq_dimid, etc
-#include <inttypes.h>     // for PRId64
-#include <stdio.h>
 
 /*!
  * writes the distribution factors for a single set
@@ -75,18 +72,18 @@ int ex_put_set_dist_fact(int exoid, ex_entity_type set_type, ex_entity_id set_id
 
   EX_FUNC_ENTER();
 
-  ex_check_valid_file_id(exoid, __func__);
+  ex__check_valid_file_id(exoid, __func__);
 
   /* first check if any sets are specified */
-  if ((status = nc_inq_dimid(exoid, ex_dim_num_objects(set_type), &dimid)) != NC_NOERR) {
+  if ((status = nc_inq_dimid(exoid, ex__dim_num_objects(set_type), &dimid)) != NC_NOERR) {
     snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: no %ss specified in file id %d",
              ex_name_of_object(set_type), exoid);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
     EX_FUNC_LEAVE(EX_FATAL);
   }
 
   /* Lookup index of set id in VAR_*S_IDS array */
-  set_id_ndx = ex_id_lkup(exoid, set_type, set_id);
+  set_id_ndx = ex__id_lkup(exoid, set_type, set_id);
   if (set_id_ndx <= 0) {
     ex_get_err(NULL, NULL, &status);
 
@@ -95,13 +92,13 @@ int ex_put_set_dist_fact(int exoid, ex_entity_type set_type, ex_entity_id set_id
         snprintf(errmsg, MAX_ERR_LENGTH,
                  "Warning: no data allowed for NULL %s %" PRId64 " in file id %d",
                  ex_name_of_object(set_type), set_id, exoid);
-        ex_err(__func__, errmsg, EX_NULLENTITY);
+        ex_err_fn(exoid, __func__, errmsg, EX_NULLENTITY);
         EX_FUNC_LEAVE(EX_WARN);
       }
       snprintf(errmsg, MAX_ERR_LENGTH,
                "ERROR: failed to locate %s id %" PRId64 " in VAR_*S_IDS array in file id %d",
                ex_name_of_object(set_type), set_id, exoid);
-      ex_err(__func__, errmsg, status);
+      ex_err_fn(exoid, __func__, errmsg, status);
       EX_FUNC_LEAVE(EX_FATAL);
     }
   }
@@ -134,18 +131,18 @@ int ex_put_set_dist_fact(int exoid, ex_entity_type set_type, ex_entity_id set_id
       snprintf(errmsg, MAX_ERR_LENGTH,
                "Warning: no dist factors defined for %s %" PRId64 " in file id %d",
                ex_name_of_object(set_type), set_id, exoid);
-      ex_err(__func__, errmsg, EX_BADPARAM);
+      ex_err_fn(exoid, __func__, errmsg, EX_BADPARAM);
       EX_FUNC_LEAVE(EX_WARN);
     }
     snprintf(errmsg, MAX_ERR_LENGTH,
              "ERROR: failed to locate dist factors list for %s %" PRId64 " in file id %d",
              ex_name_of_object(set_type), set_id, exoid);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
     EX_FUNC_LEAVE(EX_FATAL);
   }
 
   /* write out the distribution factors array */
-  if (ex_comp_ws(exoid) == 4) {
+  if (ex__comp_ws(exoid) == 4) {
     status = nc_put_var_float(exoid, dist_id, set_dist_fact);
   }
   else {
@@ -156,7 +153,7 @@ int ex_put_set_dist_fact(int exoid, ex_entity_type set_type, ex_entity_id set_id
     snprintf(errmsg, MAX_ERR_LENGTH,
              "ERROR: failed to store dist factors for %s %" PRId64 " in file id %d",
              ex_name_of_object(set_type), set_id, exoid);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
     EX_FUNC_LEAVE(EX_FATAL);
   }
 

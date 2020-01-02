@@ -34,7 +34,7 @@ vtkShaderProperty::~vtkShaderProperty()
   this->SetGeometryShaderCode(nullptr);
 }
 
-void vtkShaderProperty::DeepCopy(vtkShaderProperty *p)
+void vtkShaderProperty::DeepCopy(vtkShaderProperty* p)
 {
   this->SetVertexShaderCode(p->GetVertexShaderCode());
   this->SetFragmentShaderCode(p->GetFragmentShaderCode());
@@ -46,22 +46,22 @@ vtkMTimeType vtkShaderProperty::GetShaderMTime()
   vtkMTimeType fragUniformMTime = this->FragmentCustomUniforms->GetUniformListMTime();
   vtkMTimeType vertUniformMTime = this->VertexCustomUniforms->GetUniformListMTime();
   vtkMTimeType geomUniformMTime = this->GeometryCustomUniforms->GetUniformListMTime();
-  return std::max( { this->ShaderReplacementTime.GetMTime(), fragUniformMTime, vertUniformMTime, geomUniformMTime } );
+  return std::max({ this->GetMTime(), fragUniformMTime, vertUniformMTime, geomUniformMTime });
 }
 
 bool vtkShaderProperty::HasVertexShaderCode()
 {
-  return this->VertexShaderCode && strcmp(this->VertexShaderCode, "") != 0;
+  return this->VertexShaderCode && *this->VertexShaderCode;
 }
 
 bool vtkShaderProperty::HasFragmentShaderCode()
 {
-  return this->FragmentShaderCode && strcmp(this->FragmentShaderCode, "") != 0;
+  return this->FragmentShaderCode && *this->FragmentShaderCode;
 }
 
 bool vtkShaderProperty::HasGeometryShaderCode()
 {
-  return this->GeometryShaderCode && strcmp(this->GeometryShaderCode, "") != 0;
+  return this->GeometryShaderCode && *this->GeometryShaderCode;
 }
 
 //-----------------------------------------------------------------------------

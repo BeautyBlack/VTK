@@ -19,49 +19,12 @@
 #define VTK_WINDOWS_TEST_UTILITIES
 
 #if defined(VTK_COMPILER_MSVC) && defined(WIN32)
-#define TRACE_MAX_STACK_FRAMES 1024
-#define TRACE_MAX_FUNCTION_NAME_LENGTH 1024
-#include <windows.h>
-#pragma warning( push )
-#pragma warning( disable : 4091 )
-#include "dbghelp.h"
-#pragma warning( pop )
 #include <sstream>
+#include <windows.h>
 
-inline
-std::string vtkWindowsTestUltitiesGetProgramStack()
+inline LONG WINAPI vtkWindowsTestUlititiesExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo)
 {
-  void *stack[TRACE_MAX_STACK_FRAMES];
-  HANDLE process = GetCurrentProcess();
-  SymInitialize(process, NULL, TRUE);
-  WORD numberOfFrames = CaptureStackBackTrace(0, TRACE_MAX_STACK_FRAMES, stack, NULL);
-  SYMBOL_INFO *symbol = (SYMBOL_INFO *)malloc(sizeof(SYMBOL_INFO)+(TRACE_MAX_FUNCTION_NAME_LENGTH - 1) * sizeof(TCHAR));
-  symbol->MaxNameLen = TRACE_MAX_FUNCTION_NAME_LENGTH;
-  symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
-  DWORD displacement;
-  IMAGEHLP_LINE64 *line = (IMAGEHLP_LINE64 *)malloc(sizeof(IMAGEHLP_LINE64));
-  line->SizeOfStruct = sizeof(IMAGEHLP_LINE64);
-  std::ostringstream oss;
-  for (int i = 4; i < numberOfFrames - 3; i++)
-  {
-    DWORD64 address = (DWORD64)(stack[i]);
-    SymFromAddr(process, address, NULL, symbol);
-    if (SymGetLineFromAddr64(process, address, &displacement, line))
-    {
-      oss << " at " << symbol->Name << " in " <<  line->FileName << " line " << line->LineNumber << "\n";
-    }
-    else
-    {
-      oss << " at " << symbol->Name << "\n";
-    }
-  }
-  return oss.str();
-}
-
-inline
-LONG WINAPI vtkWindowsTestUlititiesExceptionHandler(EXCEPTION_POINTERS * ExceptionInfo)
-{
-  switch(ExceptionInfo->ExceptionRecord->ExceptionCode)
+  switch (ExceptionInfo->ExceptionRecord->ExceptionCode)
   {
     case EXCEPTION_ACCESS_VIOLATION:
       vtkLog(ERROR, << "Error: EXCEPTION_ACCESS_VIOLATION\n");
@@ -128,8 +91,7 @@ LONG WINAPI vtkWindowsTestUlititiesExceptionHandler(EXCEPTION_POINTERS * Excepti
       break;
   }
 
-  std::string stack =
-    vtkWindowsTestUltitiesGetProgramStack();
+  std::string stack = vtksys::SystemInformation::GetProgramStack(0, 0);
 
   vtkLog(ERROR, << stack);
 
@@ -141,8 +103,7 @@ inline void vtkWindowsTestUtilitiesSetupForTesting(void)
   SetUnhandledExceptionFilter(vtkWindowsTestUlititiesExceptionHandler);
 }
 #else
-inline
-void vtkWindowsTestUtilitiesSetupForTesting(void)
+inline void vtkWindowsTestUtilitiesSetupForTesting(void)
 {
   return;
 }

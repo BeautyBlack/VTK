@@ -50,12 +50,6 @@
 
 #include "exodusII.h"     // for ex_init_params, etc
 #include "exodusII_int.h" // for EX_FATAL, EX_NOERR, etc
-#include "vtk_netcdf.h"       // for NC_NOERR, nc_get_att_text, etc
-#include <stddef.h>       // for size_t
-#include <stdio.h>
-#include <stdlib.h>    // for free, malloc
-#include <string.h>    // for strncpy
-#include <sys/types.h> // for int64_t
 
 /* Used to reduce repeated code below */
 static int64_t ex_get_dim_value(int exoid, const char *name, const char *dimension_name,
@@ -73,7 +67,7 @@ static int64_t ex_get_dim_value(int exoid, const char *name, const char *dimensi
     if ((status = nc_inq_dimlen(exoid, dimension, &tmp)) != NC_NOERR) {
       snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to get number of %s in file id %d", name,
                exoid);
-      ex_err(__func__, errmsg, status);
+      ex_err_fn(exoid, __func__, errmsg, status);
       return (EX_FATAL);
     }
     *value = tmp;
@@ -82,6 +76,7 @@ static int64_t ex_get_dim_value(int exoid, const char *name, const char *dimensi
 }
 
 /*!
+ * \ingroup ModelDescription
  * reads the initialization parameters from an opened EXODUS file
  * \param exoid exodus file id
  * \param[out] info #ex_init_params structure containing metadata for mesh.
@@ -99,7 +94,7 @@ int ex_get_init_ext(int exoid, ex_init_params *info)
   int rootid = exoid & EX_FILE_ID_MASK;
 
   EX_FUNC_ENTER();
-  ex_check_valid_file_id(exoid, __func__);
+  ex__check_valid_file_id(exoid, __func__);
 
   info->num_dim       = 0;
   info->num_nodes     = 0;
@@ -143,7 +138,7 @@ int ex_get_init_ext(int exoid, ex_init_params *info)
   if (info->num_elem_blk == 0 && info->num_elem > 0) {
     snprintf(errmsg, MAX_ERR_LENGTH,
              "ERROR: failed to locate number of element blocks in file id %d", exoid);
-    ex_err(__func__, errmsg, EX_BADPARAM);
+    ex_err_fn(exoid, __func__, errmsg, EX_BADPARAM);
     EX_FUNC_LEAVE(EX_FATAL);
   }
 
@@ -188,7 +183,7 @@ int ex_get_init_ext(int exoid, ex_init_params *info)
 
   if ((status = nc_inq_att(rootid, NC_GLOBAL, ATT_TITLE, &title_type, &title_len)) != NC_NOERR) {
     snprintf(errmsg, MAX_ERR_LENGTH, "Warning: no title in file id %d", rootid);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
   }
 
   /* Check title length to avoid overrunning clients memory space; include
@@ -197,7 +192,7 @@ int ex_get_init_ext(int exoid, ex_init_params *info)
     if (title_len > MAX_LINE_LENGTH) {
       char *title = malloc(title_len + 1);
       if ((status = nc_get_att_text(rootid, NC_GLOBAL, ATT_TITLE, title)) == NC_NOERR) {
-        strncpy(info->title, title, MAX_LINE_LENGTH + 1);
+        ex_copy_string(info->title, title, MAX_LINE_LENGTH + 1);
         info->title[MAX_LINE_LENGTH] = '\0';
       }
       free(title);
@@ -208,7 +203,7 @@ int ex_get_init_ext(int exoid, ex_init_params *info)
     }
     if (status != NC_NOERR) {
       snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to get title in file id %d", rootid);
-      ex_err(__func__, errmsg, status);
+      ex_err_fn(exoid, __func__, errmsg, status);
       EX_FUNC_LEAVE(EX_FATAL);
     }
   }
@@ -216,9 +211,9 @@ int ex_get_init_ext(int exoid, ex_init_params *info)
     info->title[0] = '\0';
   }
 
-  /* Update settings in ex_file_item struct */
+  /* Update settings in ex__file_item struct */
   {
-    struct ex_file_item *file = ex_find_file_item(exoid);
+    struct ex__file_item *file = ex__find_file_item(exoid);
     if (file) {
       file->has_nodes = info->num_nodes > 0;
       file->has_edges = info->num_edge > 0;

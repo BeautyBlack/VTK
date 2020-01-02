@@ -58,11 +58,11 @@
 
 #include "exodusII.h"     // for ex_err, void_int, etc
 #include "exodusII_int.h" // for EX_FATAL, etc
-#include <vtk_netcdf.h>       // for NC_NOERR, nc_inq_dimid, etc
-#include <stddef.h>       // for size_t
-#include <stdio.h>
-#include <sys/types.h> // for int64_t
 
+/*!
+ * \ingroup ModelDescription
+ * \undoc
+ */
 int ex_get_init_global(int exoid, void_int *num_nodes_g, void_int *num_elems_g,
                        void_int *num_elem_blks_g, void_int *num_node_sets_g,
                        void_int *num_side_sets_g)
@@ -74,10 +74,10 @@ int ex_get_init_global(int exoid, void_int *num_nodes_g, void_int *num_elems_g,
   /*-----------------------------Execution begins-----------------------------*/
 
   EX_FUNC_ENTER();
-  ex_check_valid_file_id(exoid, __func__);
+  ex__check_valid_file_id(exoid, __func__);
 
   /* Check the file version information */
-  if ((dimid = ne_check_file_version(exoid)) != EX_NOERR) {
+  if ((dimid = ne__check_file_version(exoid)) != EX_NOERR) {
     EX_FUNC_LEAVE(dimid);
   }
 
@@ -85,7 +85,7 @@ int ex_get_init_global(int exoid, void_int *num_nodes_g, void_int *num_elems_g,
   if ((status = nc_inq_dimid(exoid, DIM_NUM_NODES_GLOBAL, &dimid)) != NC_NOERR) {
     snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to find dimension ID for \"%s\" in file ID %d",
              DIM_NUM_NODES_GLOBAL, exoid);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
 
     EX_FUNC_LEAVE(EX_FATAL);
   }
@@ -95,7 +95,7 @@ int ex_get_init_global(int exoid, void_int *num_nodes_g, void_int *num_elems_g,
     snprintf(errmsg, MAX_ERR_LENGTH,
              "ERROR: failed to find length of dimension \"%s\" in file ID %d", DIM_NUM_NODES_GLOBAL,
              exoid);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
 
     EX_FUNC_LEAVE(EX_FATAL);
   }
@@ -104,7 +104,7 @@ int ex_get_init_global(int exoid, void_int *num_nodes_g, void_int *num_elems_g,
   if ((status = nc_inq_dimid(exoid, DIM_NUM_ELEMS_GLOBAL, &dimid)) != NC_NOERR) {
     snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to find dimension ID for \"%s\" in file ID %d",
              DIM_NUM_ELEMS_GLOBAL, exoid);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
 
     EX_FUNC_LEAVE(EX_FATAL);
   }
@@ -114,7 +114,7 @@ int ex_get_init_global(int exoid, void_int *num_nodes_g, void_int *num_elems_g,
     snprintf(errmsg, MAX_ERR_LENGTH,
              "ERROR: failed to find length of dimension \"%s\" in file ID %d", DIM_NUM_ELEMS_GLOBAL,
              exoid);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
 
     EX_FUNC_LEAVE(EX_FATAL);
   }
@@ -123,7 +123,7 @@ int ex_get_init_global(int exoid, void_int *num_nodes_g, void_int *num_elems_g,
   if ((status = nc_inq_dimid(exoid, DIM_NUM_ELBLK_GLOBAL, &dimid)) != NC_NOERR) {
     snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to find dimension ID for \"%s\" in file ID %d",
              DIM_NUM_ELBLK_GLOBAL, exoid);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
 
     EX_FUNC_LEAVE(EX_FATAL);
   }
@@ -133,7 +133,7 @@ int ex_get_init_global(int exoid, void_int *num_nodes_g, void_int *num_elems_g,
     snprintf(errmsg, MAX_ERR_LENGTH,
              "ERROR: failed to find length of dimension \"%s\" in file ID %d", DIM_NUM_ELBLK_GLOBAL,
              exoid);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
 
     EX_FUNC_LEAVE(EX_FATAL);
   }
@@ -148,7 +148,7 @@ int ex_get_init_global(int exoid, void_int *num_nodes_g, void_int *num_elems_g,
       snprintf(errmsg, MAX_ERR_LENGTH,
                "ERROR: failed to find length of dimension \"%s\" in file ID %d", DIM_NUM_NS_GLOBAL,
                exoid);
-      ex_err(__func__, errmsg, status);
+      ex_err_fn(exoid, __func__, errmsg, status);
 
       EX_FUNC_LEAVE(EX_FATAL);
     }
@@ -164,7 +164,7 @@ int ex_get_init_global(int exoid, void_int *num_nodes_g, void_int *num_elems_g,
       snprintf(errmsg, MAX_ERR_LENGTH,
                "ERROR: failed to find length of dimension \"%s\" in file ID %d", DIM_NUM_SS_GLOBAL,
                exoid);
-      ex_err(__func__, errmsg, status);
+      ex_err_fn(exoid, __func__, errmsg, status);
 
       EX_FUNC_LEAVE(EX_FATAL);
     }

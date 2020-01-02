@@ -17,18 +17,22 @@
 #include "vtkDebugLeaks.h"
 #include "vtkObjectFactory.h"
 
-
 //-----------------------------------------------------------------------------
 vtkDynamicLoader* vtkDynamicLoader::New()
 {
-  VTK_STANDARD_NEW_BODY(vtkDynamicLoader)
+  VTK_STANDARD_NEW_BODY(vtkDynamicLoader);
 }
 
-
 // ----------------------------------------------------------------------------
-vtkLibHandle vtkDynamicLoader::OpenLibrary(const char* libname )
+vtkLibHandle vtkDynamicLoader::OpenLibrary(const char* libname)
 {
   return vtksys::DynamicLoader::OpenLibrary(libname);
+}
+
+// ----------------------------------------------------------------------------
+vtkLibHandle vtkDynamicLoader::OpenLibrary(const char* libname, int flags)
+{
+  return vtksys::DynamicLoader::OpenLibrary(libname, flags);
 }
 
 // ----------------------------------------------------------------------------
@@ -38,8 +42,7 @@ int vtkDynamicLoader::CloseLibrary(vtkLibHandle lib)
 }
 
 // ----------------------------------------------------------------------------
-vtkSymbolPointer
-vtkDynamicLoader::GetSymbolAddress(vtkLibHandle lib, const char* sym)
+vtkSymbolPointer vtkDynamicLoader::GetSymbolAddress(vtkLibHandle lib, const char* sym)
 {
   return vtksys::DynamicLoader::GetSymbolAddress(lib, sym);
 }
@@ -61,4 +64,3 @@ const char* vtkDynamicLoader::LastError()
 {
   return vtksys::DynamicLoader::LastError();
 }
-

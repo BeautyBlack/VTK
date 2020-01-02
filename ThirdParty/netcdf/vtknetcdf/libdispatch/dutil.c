@@ -1,5 +1,5 @@
 /*********************************************************************
- *   Copyright 2016, UCAR/Unidata
+ *   Copyright 2018, UCAR/Unidata
  *   See netcdf/COPYRIGHT file for copying and redistribution conditions.
  *********************************************************************/
 
@@ -22,8 +22,11 @@
 #include "netcdf.h"
 #include "ncuri.h"
 #include "ncbytes.h"
+#include "nclist.h"
 #include "nclog.h"
 #include "ncwinpath.h"
+
+extern int mkstemp(char *template);
 
 #define NC_MAX_PATH 4096
 
@@ -43,7 +46,7 @@ NC__testurl(const char* path, char** basenamep)
 {
     NCURI* uri;
     int ok = NC_NOERR;
-    if(ncuriparse(path,&uri) != NCU_OK)
+    if(ncuriparse(path,&uri))
 	ok = NC_EURL;
     else {
 	char* slash = (uri->path == NULL ? NULL : strrchr(uri->path, '/'));
@@ -161,32 +164,6 @@ NC_entityescape(const char* s)
     return escaped;
 }
 
-int
-NC_readfile(const char* filename, NCbytes* content)
-{
-    int ret = NC_NOERR;
-    FILE* stream = NULL;
-    char part[1024];
-
-#ifdef _MSC_VER
-    stream = NCfopen(filename,"r");
-#else
-    stream = NCfopen(filename,"rb");
-#endif
-    if(stream == NULL) {ret=errno; goto done;}
-    for(;;) {
-	size_t count = fread(part, 1, sizeof(part), stream);
-	if(count <= 0) break;
-	ncbytesappendn(content,part,count);
-	if(ferror(stream)) {ret = NC_EIO; goto done;}
-	if(feof(stream)) break;
-    }
-    ncbytesnull(content);
-done:
-    if(stream) fclose(stream);
-    return ret;
-}
-
 /**
 Wrap mktmp and return the generated path,
 or null if failed.
@@ -252,3 +229,125 @@ NC_mktmp(const char* base)
     return strdup(tmp);
 }
 
+int
+NC_readfile(const char* filename, NCbytes* content)
+{
+    int ret = NC_NOERR;
+    FILE* stream = NULL;
+    char part[1024];
+
+#ifdef _WIN32
+    stream = NCfopen(filename,"rb");
+#else
+    stream = NCfopen(filename,"r");
+#endif
+    if(stream == NULL) {ret=errno; goto done;}
+    for(;;) {
+	size_t count = fread(part, 1, sizeof(part), stream);
+	if(count <= 0) break;
+	ncbytesappendn(content,part,count);
+	if(ferror(stream)) {ret = NC_EIO; goto done;}
+	if(feof(stream)) break;
+    }
+    ncbytesnull(content);
+done:
+    if(stream) fclose(stream);
+    return ret;
+}
+
+int
+NC_writefile(const char* filename, size_t size, void* content)
+{
+    int ret = NC_NOERR;
+    FILE* stream = NULL;
+    void* p;
+    size_t remain;
+
+#ifdef _WIN32
+    stream = NCfopen(filename,"wb");
+#else
+    stream = NCfopen(filename,"w");
+#endif
+    if(stream == NULL) {ret=errno; goto done;}
+    p = content;
+    remain = size;
+    while(remain > 0) {
+	size_t written = fwrite(p, 1, remain, stream);
+	if(ferror(stream)) {ret = NC_EIO; goto done;}
+	if(feof(stream)) break;
+	remain -= written;
+    }
+done:
+    if(stream) fclose(stream);
+    return ret;
+}
+
+/*
+Parse a path as a url and extract the modelist.
+If the path is not a URL, then return a NULL list.
+If a URL, but modelist is empty or does not exist,
+then return empty list.
+*/
+int
+NC_getmodelist(const char* path, NClist** modelistp)
+{
+    int stat=NC_NOERR;
+    NClist* modelist = NULL;
+    NCURI* uri = NULL;
+    const char* modestr = NULL;
+    const char* p = NULL;
+    const char* endp = NULL;
+
+    ncuriparse(path,&uri);
+    if(uri == NULL) goto done; /* not a uri */
+
+    /* Get the mode= arg from the fragment */
+    modelist = nclistnew();    
+    modestr = ncurilookup(uri,"mode");
+    if(modestr == NULL || strlen(modestr) == 0) goto done;
+    /* Parse the mode string at the commas or EOL */
+    p = modestr;
+    for(;;) {
+	char* s;
+	ptrdiff_t slen;
+	endp = strchr(p,',');
+	if(endp == NULL) endp = p + strlen(p);
+	slen = (endp - p);
+	if((s = malloc(slen+1)) == NULL) {stat = NC_ENOMEM; goto done;}
+	memcpy(s,p,slen);
+	s[slen] = '\0';
+	nclistpush(modelist,s);
+	if(*endp == '\0') break;
+	p = endp+1;
+    }
+
+done:
+    if(stat == NC_NOERR) {
+	if(modelistp) {*modelistp = modelist; modelist = NULL;}
+    }
+    ncurifree(uri);
+    nclistfree(modelist);
+    return stat;
+}
+
+/*
+Check "mode=" list for a path and return 1 if present, 0 otherwise.
+*/
+int
+NC_testmode(const char* path, const char* tag)
+{
+    int stat = NC_NOERR;
+    int found = 0;
+    int i;
+    NClist* modelist = NULL;
+
+    if((stat = NC_getmodelist(path, &modelist))) goto done;
+    for(i=0;i<nclistlength(modelist);i++) {
+	const char* value = nclistget(modelist,i);
+	if(strcasecmp(tag,value)==0) {found = 1; break;}
+    }        
+    
+done:
+    nclistfree(modelist);
+    return found;
+}

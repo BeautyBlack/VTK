@@ -52,8 +52,6 @@
 
 #include "exodusII.h"     // for ex_err, etc
 #include "exodusII_int.h" // for EX_FATAL, etc
-#include "vtk_netcdf.h"       // for NC_NOERR, nc_inq_varid
-#include <stdio.h>
 
 /*!
  * \ingroup ResultsData
@@ -69,7 +67,7 @@ int ex_get_variable_name(int exoid, ex_entity_type obj_type, int var_num, char *
   const char *vname = NULL;
 
   EX_FUNC_ENTER();
-  ex_check_valid_file_id(exoid, __func__);
+  ex__check_valid_file_id(exoid, __func__);
 
   /* inquire previously defined variables  */
 
@@ -87,14 +85,14 @@ int ex_get_variable_name(int exoid, ex_entity_type obj_type, int var_num, char *
   default:
     snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: Invalid variable type (%d) given for file id %d",
              obj_type, exoid);
-    ex_err(__func__, errmsg, EX_BADPARAM);
+    ex_err_fn(exoid, __func__, errmsg, EX_BADPARAM);
     EX_FUNC_LEAVE(EX_FATAL);
   }
 
   if ((status = nc_inq_varid(exoid, vname, &varid)) != NC_NOERR) {
     snprintf(errmsg, MAX_ERR_LENGTH, "Warning: no %s variable names stored in file id %d",
              ex_name_of_object(obj_type), exoid);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
     EX_FUNC_LEAVE(EX_WARN);
   }
 
@@ -104,8 +102,7 @@ int ex_get_variable_name(int exoid, ex_entity_type obj_type, int var_num, char *
     int api_name_size = ex_inquire_int(exoid, EX_INQ_MAX_READ_NAME_LENGTH);
     int name_size     = db_name_size < api_name_size ? db_name_size : api_name_size;
 
-    status =
-        ex_get_name_internal(exoid, varid, var_num - 1, var_name, name_size, obj_type, __func__);
+    status = ex__get_name(exoid, varid, var_num - 1, var_name, name_size, obj_type, __func__);
     if (status != NC_NOERR) {
       EX_FUNC_LEAVE(EX_FATAL);
     }

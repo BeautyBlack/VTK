@@ -1,5 +1,6 @@
 vtk_add_test_cxx(vtkFiltersModelingCxxTests tests
   TestButterflyScalars.cxx
+  TestLinearCellExtrusion.cxx
   TestNamedColorsIntegration.cxx
   TestPolyDataPointSampler.cxx
   TestQuadRotationalExtrusion.cxx
@@ -8,6 +9,7 @@ vtk_add_test_cxx(vtkFiltersModelingCxxTests tests
   TestSelectEnclosedPoints.cxx
   TestVolumeOfRevolutionFilter.cxx
   UnitTestCollisionDetectionFilter.cxx,NO_DATA,NO_VALID,NO_OUTPUT
+  UnitTestHausdorffDistancePointSetFilter.cxx,NO_DATA,NO_VALID,NO_OUTPUT
   UnitTestSubdivisionFilters.cxx,NO_DATA,NO_VALID,NO_OUTPUT
   )
 vtk_add_test_cxx(vtkFiltersModelingCxxTests tests

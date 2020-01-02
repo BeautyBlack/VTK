@@ -35,8 +35,11 @@
 
 #include "exodusII.h"     // for ex_err, etc
 #include "exodusII_int.h" // for EX_FATAL
-#include "vtk_netcdf.h"       // for NC_NOERR, nc_def_grp, etc
-#include <stdio.h>
+
+/*!
+  \ingroup ModelDescription
+  \undoc
+*/
 
 int ex_create_group(int parent_id, const char *group_name)
 {
@@ -46,24 +49,22 @@ int ex_create_group(int parent_id, const char *group_name)
   int status;
 
   EX_FUNC_ENTER();
-  ex_check_valid_file_id(parent_id, __func__);
+  ex__check_valid_file_id(parent_id, __func__);
 
   if ((status = nc_redef(parent_id)) != NC_NOERR) {
     snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to put file id %d into define mode", parent_id);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
     EX_FUNC_LEAVE(EX_FATAL);
   }
 
   if ((status = nc_def_grp(parent_id, group_name, &exoid)) != NC_NOERR) {
     snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: group create failed for %s in file id %d", group_name,
              parent_id);
-    ex_err(__func__, errmsg, status);
+    ex_err_fn(exoid, __func__, errmsg, status);
     EX_FUNC_LEAVE(EX_FATAL);
   }
 
-  if ((status = nc_enddef(parent_id)) != NC_NOERR) {
-    snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to complete definition for file id %d", exoid);
-    ex_err(__func__, errmsg, status);
+  if ((status = ex__leavedef(parent_id, __func__)) != NC_NOERR) {
     EX_FUNC_LEAVE(EX_FATAL);
   }
   EX_FUNC_LEAVE(exoid);

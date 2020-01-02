@@ -4,10 +4,15 @@ if (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/vtk-m/CMakeLists.txt")
     "'git submodule update --init --recursive' in the source directory.")
 endif ()
 
-set(vtk_using_openmp OFF)
 if (VTK_SMP_IMPLEMENTATION_TYPE STREQUAL "OpenMP")
   set(VTKm_ENABLE_OPENMP ON)
 endif ()
+
+if (VTK_SMP_IMPLEMENTATION_TYPE STREQUAL "TBB")
+  set(VTKm_ENABLE_TBB ON)
+endif ()
+
+set(VTKm_ENABLE_CUDA ${VTK_USE_CUDA})
 
 set(VTKm_INSTALL_LIB_DIR "${_vtk_build_LIBRARY_DESTINATION}")
 set(VTKm_INSTALL_INCLUDE_DIR "${_vtk_build_HEADERS_DESTINATION}/vtkvtkm/vtk-m")
@@ -20,15 +25,16 @@ set(VTKm_BUILD_CMAKE_BASE_DIR "${CMAKE_BINARY_DIR}")
 set(VTKm_INSTALL_CONFIG_DIR "${_vtk_build_CMAKE_DESTINATION}/vtkm")
 set(VTKm_INSTALL_CMAKE_MODULE_DIR "${VTKm_INSTALL_CONFIG_DIR}/cmake")
 
+if (_vtk_build_INSTALL_HEADERS)
+  set(VTKm_INSTALL_ONLY_LIBRARIES OFF)
+else ()
+  set(VTKm_INSTALL_ONLY_LIBRARIES ON)
+endif ()
+
 set(VTKm_USE_DEFAULT_SYMBOL_VISIBILITY OFF)
-option(VTK_VTKM_ENABLE_CUDA "" OFF)
-set(VTKm_ENABLE_CUDA "${VTK_VTKM_ENABLE_CUDA}")
-option(VTK_VTKM_ENABLE_TBB "" OFF)
-set(VTKm_ENABLE_TBB "${VTK_VTKM_ENABLE_TBB}")
 set(VTKm_ENABLE_RENDERING OFF)
 set(VTKm_ENABLE_TESTING OFF)
 set(VTKm_ENABLE_BENCHMARKS OFF)
-set(VTKm_ENABLE_OSMESA OFF)
 set(VTKm_ENABLE_DOCUMENTATION OFF)
 set(VTKm_ENABLE_EXAMPLES OFF)
 set(VTKm_ENABLE_CPACK OFF)
@@ -48,11 +54,11 @@ if (VTKm_ENABLE_CUDA AND CMAKE_VERSION VERSION_LESS 3.11)
   set(CMAKE_CUDA_STANDARD_REQUIRED True)
 endif ()
 
+set(BUILD_SHARED_LIBS OFF)
+
 add_subdirectory(vtk-m)
+vtkm_setup_job_pool()
 
 vtk_module_add_module(VTK::vtkm
   HEADER_ONLY)
-target_link_libraries(vtkm
-  INTERFACE
-    vtkm
-    vtkm_cont)
+vtk_module_link(VTK::vtkm INTERFACE vtkm_cont vtkm_filter)

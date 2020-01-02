@@ -8,10 +8,6 @@ foreach(policy
   endif()
 endforeach()
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Android" AND CMAKE_VERSION VERSION_LESS 3.7)
-  message(FATAL_ERROR "CMake 3.7 or above is required to build for Android")
-endif()
-
 if (POLICY CMP0063)
   cmake_policy(SET CMP0063 NEW)
 endif ()
@@ -65,13 +61,10 @@ include(vtkCMakeBackports)
 # Should be included after vtkTesting
 include(vtkCompilerDynamicAnalysisFlags)
 
-#-----------------------------------------------------------------------------
-# Do we want examples built?
-option(VTK_BUILD_EXAMPLES "Build VTK examples." OFF)
-
 set(VTK_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
 set(CMAKE_CXX_VISIBILITY_PRESET "hidden")
 set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
+set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
 #-----------------------------------------------------------------------------
 # Add the Remote Subdirectory
@@ -110,11 +103,26 @@ if (VTK_BUILD_TESTING)
 endif ()
 
 #-----------------------------------------------------------------------------
+# Add an option to enable/disable components that have CUDA.
+option(VTK_USE_CUDA "Support CUDA compilation" OFF)
+if(VTK_USE_CUDA)
+  # This needs to be a top level flag as enable_language needs
+  # to be called from CMake entry point for variables to have
+  # the correct scope.
+  enable_language(CUDA)
+endif()
+
+#-----------------------------------------------------------------------------
 # Add an option to enable/disable logging support.
 option(VTK_ENABLE_LOGGING "Enable logging support." ON)
 mark_as_advanced(VTK_ENABLE_LOGGING)
 
 include(vtkEncodeString)
+
+# Set up our directory structure for output libraries and binaries
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${VTK_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${VTK_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${VTK_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}")
 
 set(vtk_requested_modules)
 set(vtk_rejected_modules)
@@ -138,10 +146,6 @@ endif ()
 # For vtkTkRenderWidget (only useful with Python, since WRAP_TCL is gone)
 if (VTK_USE_TK)
   set(VTK_GROUP_ENABLE_Tk YES)
-else ()
-  set(_vtk_module_group_default_Tk "DONT_WANT")
-  list(APPEND vtk_rejected_modules
-    VTK::RenderingTk)
 endif ()
 if (VTK_USE_MPI)
   set(VTK_GROUP_ENABLE_MPI YES)
@@ -195,6 +199,7 @@ if (VTK_FORBID_DOWNLOADS)
 endif ()
 
 include(vtkModule)
+include(vtkModuleDebugging)
 set(vtk_source_directories
   "${CMAKE_CURRENT_SOURCE_DIR}/Accelerators"
   "${CMAKE_CURRENT_SOURCE_DIR}/Charts"
@@ -231,6 +236,10 @@ if (VTK_BUILD_COMPILE_TOOLS_ONLY)
   set(vtk_kit_files)
 endif ()
 
+cmake_dependent_option(VTK_INSTALL_SDK "Install SDK components" ON
+  "NOT VTK_BUILD_COMPILE_TOOLS_ONLY" ON)
+mark_as_advanced(VTK_INSTALL_SDK)
+
 vtk_module_scan(
   MODULE_FILES        ${vtk_module_files}
   KIT_FILES           ${vtk_kit_files}
@@ -249,10 +258,11 @@ if (vtk_required_modules OR vtk_unrecognized_modules)
     "${vtk_required_modules};${vtk_unrecognized_modules}.")
 endif ()
 
-list(FIND vtk_modules "VTK::Python" vtk_python_idx)
-if (NOT vtk_python_idx EQUAL "-1")
+if ("VTK::Python" IN_LIST vtk_modules)
   include(vtkModuleWrapPython)
-  vtk_module_python_default_destination(VTK_PYTHON_SITE_PACKAGES_SUFFIX)
+  if (NOT DEFINED VTK_PYTHON_SITE_PACKAGES_SUFFIX)
+    vtk_module_python_default_destination(VTK_PYTHON_SITE_PACKAGES_SUFFIX)
+  endif ()
 endif ()
 
 option(VTK_ENABLE_KITS "Enable kits compilation" OFF)
@@ -261,22 +271,33 @@ mark_as_advanced(VTK_ENABLE_KITS)
 option(VTK_USE_EXTERNAL "Use external copies of third party libraries by default" OFF)
 mark_as_advanced(VTK_USE_EXTERNAL)
 
+option(VTK_VERSIONED_INSTALL "Install artifacts with versioned names." ON)
+mark_as_advanced(VTK_VERSIONED_INSTALL)
+set(vtk_version_suffix "")
+if (VTK_VERSIONED_INSTALL)
+  set(vtk_version_suffix "-${VTK_MAJOR_VERSION}.${VTK_MINOR_VERSION}")
+endif ()
+
 set(vtk_install_export VTK)
 set(vtk_cmake_destination
-  "${CMAKE_INSTALL_LIBDIR}/cmake/vtk-${VTK_MAJOR_VERSION}.${VTK_MINOR_VERSION}")
+  "${CMAKE_INSTALL_LIBDIR}/cmake/vtk${vtk_version_suffix}")
 set(vtk_target_package)
 if (VTK_BUILD_COMPILE_TOOLS_ONLY)
   set(vtk_install_export VTKCompileTools)
   set(vtk_cmake_destination
-    "${CMAKE_INSTALL_LIBDIR}/cmake/vtkcompiletools-${VTK_MAJOR_VERSION}.${VTK_MINOR_VERSION}")
+    "${CMAKE_INSTALL_LIBDIR}/cmake/vtkcompiletools${vtk_version_suffix}")
   set(vtk_target_package PACKAGE "${vtk_install_export}")
 endif ()
 
 set(VTK_CUSTOM_LIBRARY_SUFFIX "<DEFAULT>"
-  CACHE STRING "Custom library file name suffix (defaults to ${VTK_MAJOR_VERSION}.${VTK_MINOR_VERSION})")
+  CACHE STRING "Custom library file name suffix (defaults to the version number)")
 mark_as_advanced(VTK_CUSTOM_LIBRARY_SUFFIX)
 if (VTK_CUSTOM_LIBRARY_SUFFIX STREQUAL "<DEFAULT>")
-  set(VTK_CUSTOM_LIBRARY_SUFFIX "${VTK_MAJOR_VERSION}.${VTK_MINOR_VERSION}")
+  if (VTK_VERSIONED_INSTALL)
+    set(VTK_CUSTOM_LIBRARY_SUFFIX "${VTK_MAJOR_VERSION}.${VTK_MINOR_VERSION}")
+  else ()
+    set(VTK_CUSTOM_LIBRARY_SUFFIX "")
+  endif ()
 endif ()
 
 vtk_module_build(
@@ -284,12 +305,13 @@ vtk_module_build(
   KITS                ${vtk_kits}
   INSTALL_EXPORT      "${vtk_install_export}"
   ${vtk_target_package}
-  HEADERS_DESTINATION "include/vtk-${VTK_MAJOR_VERSION}.${VTK_MINOR_VERSION}"
+  HEADERS_DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/vtk${vtk_version_suffix}"
   CMAKE_DESTINATION   "${vtk_cmake_destination}"
   LIBRARY_NAME_SUFFIX "${VTK_CUSTOM_LIBRARY_SUFFIX}"
   VERSION             "${VTK_VERSION}"
   SOVERSION           "1"
   TEST_DATA_TARGET    VTKData
+  INSTALL_HEADERS     "${VTK_INSTALL_SDK}"
   BUILD_WITH_KITS     "${VTK_ENABLE_KITS}"
   USE_EXTERNAL        "${VTK_USE_EXTERNAL}"
   TEST_INPUT_DATA_DIRECTORY   "${CMAKE_CURRENT_SOURCE_DIR}/Testing"
@@ -305,17 +327,6 @@ vtk_module_graphviz(
   PRIVATE_DEPENDENCIES OFF
   OUTPUT  "modules.dot")
 
-# Create target to download data from the VTKData group.  This must come after
-# all tests have been added that reference the group, so we put it last.
-if(VTK_DATA_EXCLUDE_FROM_ALL)
-  set_property(TARGET VTKData PROPERTY EXCLUDE_FROM_ALL 1)
-  if(BUILD_TESTING AND NOT VTK_DATA_EXCLUDE_FROM_ALL_NO_WARNING)
-    message(WARNING "VTK_DATA_EXCLUDE_FROM_ALL is ON so test data "
-      "(needed because BUILD_TESTING is ON) may not be available "
-      "without manually building the 'VTKData' target.")
-  endif()
-endif()
-
 if (VTK_WRAP_PYTHON)
   get_property(vtk_required_python_modules GLOBAL
     PROPERTY  vtk_required_python_modules)
@@ -327,14 +338,27 @@ if (VTK_WRAP_PYTHON)
     "${vtk_required_python_modules}\n")
   vtk_module_wrap_python(
     MODULES         ${vtk_modules}
-    INSTALL_EXPORT  VTK
+    INSTALL_EXPORT  VTKPython
     PYTHON_PACKAGE  "vtkmodules"
+    LIBRARY_DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     MODULE_DESTINATION  "${VTK_PYTHON_SITE_PACKAGES_SUFFIX}"
     CMAKE_DESTINATION   "${vtk_cmake_destination}"
+    INSTALL_HEADERS     "${VTK_INSTALL_SDK}"
     WRAPPED_MODULES vtk_python_wrapped_modules
     TARGET          VTK::vtkpythonmodules)
 
   add_subdirectory(Wrapping/Python)
+
+  export(
+    EXPORT    VTKPython
+    NAMESPACE VTK::
+    FILE      "${CMAKE_BINARY_DIR}/${vtk_cmake_destination}/VTKPython-targets.cmake")
+  install(
+    EXPORT      VTKPython
+    NAMESPACE   VTK::
+    FILE        VTKPython-targets.cmake
+    DESTINATION "${vtk_cmake_destination}"
+    COMPONENT   "development")
 endif ()
 
 if (VTK_WRAP_JAVA)
@@ -343,12 +367,25 @@ endif ()
 
 ExternalData_Add_Target(VTKData)
 
-set(vtk_cmake_build_dir
-  "${CMAKE_CURRENT_BINARY_DIR}/${vtk_cmake_destination}")
-if (NOT VTK_BUILD_COMPILE_TOOLS_ONLY)
-  include(vtkInstallCMakePackage)
-else ()
-  include(vtkInstallCMakePackageCompileTools)
+# Create target to download data from the VTKData group.  This must come after
+# all tests have been added that reference the group, so we put it last.
+if(VTK_DATA_EXCLUDE_FROM_ALL)
+  set_property(TARGET VTKData PROPERTY EXCLUDE_FROM_ALL 1)
+  if(BUILD_TESTING AND NOT VTK_DATA_EXCLUDE_FROM_ALL_NO_WARNING)
+    message(WARNING "VTK_DATA_EXCLUDE_FROM_ALL is ON so test data "
+      "(needed because BUILD_TESTING is ON) may not be available "
+      "without manually building the 'VTKData' target.")
+  endif()
+endif()
+
+if (VTK_INSTALL_SDK)
+  set(vtk_cmake_build_dir
+    "${CMAKE_CURRENT_BINARY_DIR}/${vtk_cmake_destination}")
+  if (NOT VTK_BUILD_COMPILE_TOOLS_ONLY)
+    include(vtkInstallCMakePackage)
+  else ()
+    include(vtkInstallCMakePackageCompileTools)
+  endif ()
 endif ()
 
 cmake_dependent_option(VTK_ENABLE_CDASH_THIRD_PARTY_WARNINGS
@@ -377,13 +414,27 @@ if(VTK_BUILD_DOCUMENTATION)
 endif()
 
 # If python wrapping and testing is enabled then add driver scripts to run
-# tests.  Note: Many pythong tests used to be automatically converted from TCL
+# tests.  Note: Many python tests used to be automatically converted from TCL
 # scripts. Hence the name vtkTclTest2Py
 if(BUILD_TESTING AND VTK_WRAP_PYTHON)
   add_subdirectory(Utilities/vtkTclTest2Py)
 endif()
 
-# TODO: The VTKCompileTools package.
+if (NOT TARGET uninstall)
+  add_custom_target(uninstall
+    COMMAND
+      "${CMAKE_COMMAND}"
+        "-DCMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}"
+        -P "${CMAKE_CURRENT_LIST_DIR}/CMake/vtkUninstall.cmake"
+    USES_TERMINAL
+    COMMENT "Uninstalling VTK")
+endif ()
+
+install(
+  FILES       "${CMAKE_CURRENT_LIST_DIR}/Copyright.txt"
+  DESTINATION "${CMAKE_INSTALL_DOCDIR}"
+  COMPONENT   "license")
+
 # TODO: HeaderTest exclusions for memcheck.
 
 #-----------------------------------------------------------------------------

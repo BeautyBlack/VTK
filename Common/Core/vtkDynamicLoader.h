@@ -20,7 +20,7 @@
  * libraries into a process.
  * @sa
  * A more portable and lightweight solution is kwsys::DynamicLoader
-*/
+ */
 
 #ifndef vtkDynamicLoader_h
 #define vtkDynamicLoader_h
@@ -36,7 +36,7 @@ class VTKCOMMONCORE_EXPORT vtkDynamicLoader : public vtkObject
 {
 public:
   static vtkDynamicLoader* New();
-  vtkTypeMacro(vtkDynamicLoader,vtkObject);
+  vtkTypeMacro(vtkDynamicLoader, vtkObject);
 
   /**
    * Load a dynamic library into the current process.
@@ -44,6 +44,7 @@ public:
    * library.
    */
   static vtkLibHandle OpenLibrary(const char*);
+  static vtkLibHandle OpenLibrary(const char*, int);
 
   /**
    * Attempt to detach a dynamic library from the

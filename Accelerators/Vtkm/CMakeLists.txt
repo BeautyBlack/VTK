@@ -17,28 +17,34 @@
 list(INSERT 0 CMAKE_MODULE_PATH
   "${VTK_SOURCE_DIR}/ThirdParty/vtkm/vtkvtkm/vtk-m/CMake")
 
-set(sources)
-set(headers)
+set(sources
+  vtkmlib/ArrayConvertersReal.cxx
+  vtkmlib/ArrayConvertersSigned.cxx
+  vtkmlib/ArrayConvertersUnsigned.cxx)
+
+set(headers
+  vtkmFilterPolicy.h)
+
 set(private_headers
-  vtkmlib/DataSetConverters.h
+  vtkmlib/ArrayConverters.hxx
   vtkmlib/Portals.hxx
   vtkmlib/PortalTraits.h
-  vtkmlib/Storage.hxx)
+  vtkmDataArray.hxx)
 
 set(impl_classes
   vtkmAverageToCells
   vtkmAverageToPoints
-  vtkmCellSetExplicit
-  vtkmCellSetSingleType
   vtkmCleanGrid
   vtkmClip
-  vtkmConnectivityExec
   vtkmContour
   vtkmCoordinateSystemTransform
+  vtkmDataArray
+  vtkmDataSet
   vtkmExternalFaces
   vtkmExtractVOI
   vtkmGradient
   vtkmHistogram
+  vtkmImageConnectivity
   vtkmLevelOfDetail
   vtkmNDHistogram
   vtkmPointElevation
@@ -54,13 +60,12 @@ set(impl_classes
 set(private_impl_classes
   vtkmlib/ArrayConverters
   vtkmlib/CellSetConverters
-  vtkmlib/ImageDataConverter
-  vtkmlib/PolyDataConverter
-  vtkmlib/Storage
-  vtkmlib/UnstructuredGridConverter
   vtkmlib/DataSetConverters
+  vtkmlib/ImageDataConverter
   vtkmlib/ImplicitFunctionConverter
-  vtkmlib/Portals)
+  vtkmlib/PolyDataConverter
+  vtkmlib/Portals
+  vtkmlib/UnstructuredGridConverter)
 
 foreach (class IN LISTS impl_classes)
   list(APPEND sources "${class}.cxx")
@@ -72,12 +77,6 @@ foreach (class IN LISTS private_impl_classes)
   list(APPEND private_headers "${class}.h")
 endforeach ()
 
-if (TARGET vtkm::cuda)
-  set_source_files_properties(${sources} PROPERTIES LANGUAGE "CUDA")
-  #The vtkmlib/CellSetConverters need to be built always as CXX
-  #as the worklets used by them require access to vtk classes
-  set_source_files_properties(vtkmlib/CellSetConverters.cxx PROPERTIES LANGUAGE "CXX")
-endif ()
 
 set(VTKM_FILTER_INCLUDE_AOS ${VTK_DISPATCH_AOS_ARRAYS})
 set(VTKM_FILTER_INCLUDE_SOA ${VTK_DISPATCH_SOA_ARRAYS})
@@ -89,22 +88,6 @@ configure_file(
 list(APPEND headers
   "${CMAKE_CURRENT_BINARY_DIR}/vtkmConfig.h")
 
-# The VTK-m project uses large amounts of memory to compile as it does lots
-# of template expansion. To reduce the amount of tension on the machine when
-# using generators such as ninja we restrict the number of VTK-m enabled
-# compilation units to be built at the same time.
-# The logic we use is that no more than half the system memory should be used
-# on VTK-m compilation units, where we expect each compilation unit to use
-# 2GB of memory.
-cmake_host_system_information(RESULT vtkm_mem_ QUERY TOTAL_PHYSICAL_MEMORY)
-math(EXPR vtkm_pool_size "(${vtkm_mem_}/2)/2048")
-if (vtkm_pool_size EQUAL 0)
-  set(vtkm_pool_size 1)
-endif ()
-set_property(GLOBAL APPEND
-  PROPERTY
-    JOB_POOLS vtkm_pool=${vtkm_pool_size})
-
 if (TARGET vtkm::cuda)
   enable_language(CUDA)
 
@@ -115,11 +98,6 @@ if (TARGET vtkm::cuda)
     set(CMAKE_CUDA_STANDARD_REQUIRED True)
   endif()
 
-  get_property(arch_flags
-    TARGET    vtkm::cuda
-    PROPERTY  VTKm_CUDA_Architecture_Flags)
-  string(APPEND CMAKE_CUDA_FLAGS " ${arch_flags}")
-
   # Temporarily suppress "has address taken but no possible call to it" warnings,
   # until we figure out its implications.
   # We are disabling all warnings as nvlink has no known way to suppress
@@ -127,16 +105,32 @@ if (TARGET vtkm::cuda)
   string(APPEND CMAKE_CUDA_FLAGS " -Xnvlink -w")
 endif ()
 
-vtk_module_add_module(VTK::AcceleratorsVTKm
-  SOURCES ${sources}
-  HEADERS ${headers}
-  PRIVATE_HEADERS ${private_headers})
+if(TARGET vtkm::cuda AND BUILD_SHARED_LIBS)
+  message("Cuda is enabled. Module VTK::AcceleratorsVTKm will be forced to build as static.")
+  vtk_module_add_module(VTK::AcceleratorsVTKm
+    FORCE_STATIC
+    SOURCES ${sources}
+    HEADERS ${headers}
+    PRIVATE_HEADERS ${private_headers})
+else()
+  vtk_module_add_module(VTK::AcceleratorsVTKm
+    SOURCES ${sources}
+    HEADERS ${headers}
+    PRIVATE_HEADERS ${private_headers})
+endif()
+_vtk_module_real_target(vtkm_accel_target VTK::AcceleratorsVTKm)
+vtkm_add_target_information(${vtkm_accel_target}
+                            EXTENDS_VTKM
+                            MODIFY_CUDA_FLAGS
+                            DEVICE_SOURCES ${sources})
+
 vtk_module_set_property(VTK::AcceleratorsVTKm
   PROPERTY  JOB_POOL_COMPILE
   VALUE     vtkm_pool)
 vtk_module_link(VTK::AcceleratorsVTKm
   PRIVATE
-    vtkm_worklet)
+    vtkm_worklet
+    vtkm_filter)
 
 if (TARGET vtkm::cuda)
   vtk_module_set_property(VTK::AcceleratorsVTKm
@@ -162,7 +156,12 @@ if (MSVC)
     /wd4512
     # Generates numerous warning that implicit constructors can't be
     # constructed. This is understood and we don't care.
-    /wd4510)
+    /wd4510
+    # Generates warnings when decorated names are over 4096 characters
+    # This compiler warning is deprecated and no longer occurs with VS2017+.
+    # So we suppress for VS2015
+    /wd4503
+    )
   set(vtkm_msvc_flags)
   foreach (msvc_warning_flag IN LISTS msvc_warning_flags)
     if (TARGET vtkm::cuda)

@@ -35,15 +35,12 @@
 
 #include "exodusII.h"     // for ex_err, etc
 #include "exodusII_int.h" // for EX_FATAL, DIM_NUM_QA, etc
-#include "vtk_netcdf.h"       // for NC_NOERR, nc_inq_dimid, etc
-#include <stddef.h>       // for size_t
-#include <stdio.h>
-#include <string.h> // for strlen, NULL
 
 /*!
+\ingroup Utilities
 
 The function ex_put_qa() writes the QA records to the database. Each
-QA record contains four MAX_STR_LENGTH-byte character
+QA record contains four #MAX_STR_LENGTH byte character
 strings. The character strings are:
 
  -  the analysis code name
@@ -101,7 +98,7 @@ int ex_put_qa(int exoid, int num_qa_records, char *qa_record[][4])
   EX_FUNC_ENTER();
   int rootid = exoid & EX_FILE_ID_MASK;
 
-  ex_check_valid_file_id(exoid, __func__);
+  ex__check_valid_file_id(exoid, __func__);
 
   /* only do this if there are records */
 
@@ -117,7 +114,7 @@ int ex_put_qa(int exoid, int num_qa_records, char *qa_record[][4])
       if ((status = nc_redef(rootid)) != NC_NOERR) {
         snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to put file id %d into define mode",
                  rootid);
-        ex_err(__func__, errmsg, status);
+        ex_err_fn(exoid, __func__, errmsg, status);
         EX_FUNC_LEAVE(EX_FATAL);
       }
 
@@ -125,12 +122,12 @@ int ex_put_qa(int exoid, int num_qa_records, char *qa_record[][4])
       if ((status = nc_def_dim(rootid, DIM_NUM_QA, num_qa_records, &num_qa_dim)) != NC_NOERR) {
         if (status == NC_ENAMEINUSE) { /* duplicate entry? */
           snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: qa records already exist in file id %d", rootid);
-          ex_err(__func__, errmsg, status);
+          ex_err_fn(exoid, __func__, errmsg, status);
         }
         else {
           snprintf(errmsg, MAX_ERR_LENGTH,
                    "ERROR: failed to define qa record array size in file id %d", rootid);
-          ex_err(__func__, errmsg, status);
+          ex_err_fn(exoid, __func__, errmsg, status);
         }
 
         goto error_ret; /* exit define mode and return */
@@ -140,7 +137,7 @@ int ex_put_qa(int exoid, int num_qa_records, char *qa_record[][4])
       if ((status = nc_def_dim(rootid, DIM_N4, 4L, &n4dim)) != NC_NOERR) {
         snprintf(errmsg, MAX_ERR_LENGTH,
                  "ERROR: failed to define number \"4\" dimension in file id %d", rootid);
-        ex_err(__func__, errmsg, status);
+        ex_err_fn(exoid, __func__, errmsg, status);
         goto error_ret; /* exit define mode and return */
       }
 
@@ -152,7 +149,7 @@ int ex_put_qa(int exoid, int num_qa_records, char *qa_record[][4])
         else {
           snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to define string length in file id %d",
                    rootid);
-          ex_err(__func__, errmsg, status);
+          ex_err_fn(exoid, __func__, errmsg, status);
           goto error_ret; /* exit define mode and return */
         }
       }
@@ -165,15 +162,12 @@ int ex_put_qa(int exoid, int num_qa_records, char *qa_record[][4])
       if ((status = nc_def_var(rootid, VAR_QA_TITLE, NC_CHAR, 3, dims, &varid)) != NC_NOERR) {
         snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to define qa record array in file id %d",
                  rootid);
-        ex_err(__func__, errmsg, status);
+        ex_err_fn(exoid, __func__, errmsg, status);
         goto error_ret; /* exit define mode and return */
       }
 
       /*   leave define mode  */
-      if ((status = nc_enddef(rootid)) != NC_NOERR) {
-        snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to complete definition in file id %d",
-                 rootid);
-        ex_err(__func__, errmsg, status);
+      if ((status = ex__leavedef(rootid, __func__)) != NC_NOERR) {
         EX_FUNC_LEAVE(EX_FATAL);
       }
     }
@@ -181,7 +175,7 @@ int ex_put_qa(int exoid, int num_qa_records, char *qa_record[][4])
       if ((status = nc_inq_varid(rootid, VAR_QA_TITLE, &varid)) != NC_NOERR) {
         snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to find qa records variable in file id %d",
                  rootid);
-        ex_err(__func__, errmsg, status);
+        ex_err_fn(exoid, __func__, errmsg, status);
         EX_FUNC_LEAVE(EX_FATAL);
       }
     }
@@ -203,13 +197,13 @@ int ex_put_qa(int exoid, int num_qa_records, char *qa_record[][4])
               NC_NOERR) {
             snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to store qa record in file id %d",
                      rootid);
-            ex_err(__func__, errmsg, status);
+            ex_err_fn(exoid, __func__, errmsg, status);
             EX_FUNC_LEAVE(EX_FATAL);
           }
         }
       }
     }
-    else if (ex_is_parallel(rootid)) {
+    else if (ex__is_parallel(rootid)) {
       /* In case we are in a collective mode, all processors need to call */
       const char dummy[] = " ";
       for (i = 0; i < num_qa_records; i++) {
@@ -225,9 +219,6 @@ int ex_put_qa(int exoid, int num_qa_records, char *qa_record[][4])
 
 /* Fatal error: exit definition mode and return */
 error_ret:
-  if ((status = nc_enddef(rootid)) != NC_NOERR) { /* exit define mode */
-    snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to complete definition for file id %d", rootid);
-    ex_err(__func__, errmsg, status);
-  }
+  ex__leavedef(rootid, __func__);
   EX_FUNC_LEAVE(EX_FATAL);
 }

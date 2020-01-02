@@ -12,17 +12,14 @@
 
 =========================================================================*/
 
-#include "vtkAutoInit.h"
-VTK_MODULE_INIT(vtkRenderingOpenGL2);
-
 #include "vtkNew.h"
-#include "vtkRenderer.h"
 #include "vtkOpenGLRenderWindow.h"
 #include "vtkOutputWindow.h"
+#include "vtkRenderer.h"
 
 #include <sstream>
 
-int main(int , char* /* argv */[])
+int main(int, char* /* argv */[])
 {
   int result = 0;
 

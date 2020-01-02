@@ -21,7 +21,7 @@ else:
     res = 25
     numProbes = 5000
 
-# Create an initial set of points and associated datatset
+# Create an initial set of points and associated dataset
 mandel = vtk.vtkImageMandelbrotSource()
 mandel.SetWholeExtent(-res,res,-res,res,-res,res)
 mandel.Update()
@@ -213,6 +213,7 @@ print("Build OBB Locator: {0}".format(time))
 # Probe the dataset with FindClosestPoint() and time it
 timer.StartTimer()
 for i in range (0,numProbes):
+    print(i)
     obbClosest.SetId(i, locator4.FindCell(ProbeCells.GetPoint(i),0.001,genCell,pc,weights))
 timer.StopTimer()
 opTime = timer.GetElapsedTime()

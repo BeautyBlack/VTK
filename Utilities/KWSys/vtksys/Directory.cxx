@@ -48,7 +48,7 @@ unsigned long Directory::GetNumberOfFiles() const
 const char* Directory::GetFile(unsigned long dindex) const
 {
   if (dindex >= this->Internal->Files.size()) {
-    return KWSYS_NULLPTR;
+    return nullptr;
   }
   return this->Internal->Files[dindex].c_str();
 }
@@ -102,7 +102,7 @@ bool Directory::Load(const std::string& name)
 #  endif
   char* buf;
   size_t n = name.size();
-  if (*name.rbegin() == '/' || *name.rbegin() == '\\') {
+  if (name.back() == '/' || name.back() == '\\') {
     buf = new char[n + 1 + 1];
     sprintf(buf, "%s*", name.c_str());
   } else {
@@ -144,7 +144,7 @@ unsigned long Directory::GetNumberOfFilesInDirectory(const std::string& name)
 #  endif
   char* buf;
   size_t n = name.size();
-  if (*name.rbegin() == '/') {
+  if (name.back() == '/') {
     buf = new char[n + 1 + 1];
     sprintf(buf, "%s*", name.c_str());
   } else {
